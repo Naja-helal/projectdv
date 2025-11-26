@@ -239,20 +239,50 @@ railway up    # رفع التغييرات
 
 ### المرحلة 5️⃣: Deploy على Netlify (Frontend)
 
-```bash
-# التأكد من أنك في المجلد الرئيسي
-pwd
-# يجب أن يكون: C:\Users\naja2\Desktop\Tkamol2025\saud - Copy (4)
+⚠️ **مهم جداً: تشغيل الأمر من المجلد الصحيح!**
 
-# Deploy على Production
+```bash
+# ❌ الطريقة الخاطئة (من داخل مجلد web):
+cd web
+netlify deploy --prod
+# سيفشل لأن netlify.toml يحاول الدخول لـ web/web
+
+# ✅ الطريقة الصحيحة (من المجلد الرئيسي):
+cd "C:\Users\naja2\Desktop\Tkamol2025\saud - Copy (4)"
 netlify deploy --prod
 ```
 
-**خطوات التنفيذ:**
-1. سيسألك: "Deploy path?" - اضغط Enter (سيستخدم `web/dist`)
-2. سيبدأ البناء تلقائياً: `npm run build`
-3. سيرفع الملفات إلى Netlify
-4. سيعطيك الرابط: https://projectdv.netlify.app
+**الخطوات الصحيحة بالتفصيل:**
+
+```bash
+# 1. التأكد من المجلد الحالي
+cd "C:\Users\naja2\Desktop\Tkamol2025\saud - Copy (4)"
+
+# 2. (اختياري) Build يدوي للتأكد من عدم وجود أخطاء
+cd web
+npm run build
+cd ..
+
+# 3. Deploy من المجلد الرئيسي
+netlify deploy --prod
+```
+
+**ماذا سيحدث:**
+1. ✅ Netlify سيقرأ `netlify.toml` من المجلد الرئيسي
+2. ✅ سينفذ: `cd web && npm run build` (سيدخل لـ web ويعمل build)
+3. ✅ سيرفع محتوى: `web/dist`
+4. ✅ سيعطيك الرابط: https://projectdv.netlify.app
+
+**إذا واجهتك مشكلة "The system cannot find the path specified":**
+- ✅ تأكد أنك في المجلد الرئيسي: `pwd`
+- ✅ يجب أن يكون: `C:\Users\naja2\Desktop\Tkamol2025\saud - Copy (4)`
+- ✅ **ليس**: `C:\Users\naja2\Desktop\Tkamol2025\saud - Copy (4)\web`
+
+**الحل السريع إذا كنت في مجلد web:**
+```bash
+cd ..
+netlify deploy --prod
+```
 
 ---
 
