@@ -31,6 +31,8 @@ lerna-debug.log*
 *.db-wal
 *.sqlite
 *.sqlite3
+# استثناء لقاعدة بيانات الإنتاج
+!server/expenses-production.db
 
 # OS
 .DS_Store
