@@ -41,9 +41,9 @@ const db = new Database(dbPath);
 
 // تحديث schema تلقائياً عند بدء التشغيل
 try {
-  const columns = db.pragma('table_info(expenses)');
-  const hasDescription = columns.some((col: any) => col.name === 'description');
-  const hasDetails = columns.some((col: any) => col.name === 'details');
+  const columns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
+  const hasDescription = columns.some((col) => col.name === 'description');
+  const hasDetails = columns.some((col) => col.name === 'details');
   
   if (!hasDescription) {
     console.log('➕ إضافة عمود description...');
@@ -409,9 +409,9 @@ app.post("/api/expenses", (req, res) => {
     const totalAmount = +(calculatedAmount + taxAmount).toFixed(2);
 
     // التحقق من وجود أعمدة description و details
-    const columns = db.pragma('table_info(expenses)');
-    const hasDescription = columns.some((col: any) => col.name === 'description');
-    const hasDetails = columns.some((col: any) => col.name === 'details');
+    const columns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
+    const hasDescription = columns.some((col) => col.name === 'description');
+    const hasDetails = columns.some((col) => col.name === 'details');
 
     let stmt, params;
     
