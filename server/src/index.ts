@@ -39,6 +39,31 @@ if (process.env.NODE_ENV === 'production' && !fs.existsSync(dbPath)) {
 
 const db = new Database(dbPath);
 
+// تحديث schema تلقائياً عند بدء التشغيل
+try {
+  const columns = db.pragma('table_info(expenses)');
+  const hasDescription = columns.some((col: any) => col.name === 'description');
+  const hasDetails = columns.some((col: any) => col.name === 'details');
+  
+  if (!hasDescription) {
+    console.log('➕ إضافة عمود description...');
+    db.exec('ALTER TABLE expenses ADD COLUMN description TEXT');
+    console.log('✅ تم إضافة عمود description');
+  }
+  
+  if (!hasDetails) {
+    console.log('➕ إضافة عمود details...');
+    db.exec('ALTER TABLE expenses ADD COLUMN details TEXT');
+    console.log('✅ تم إضافة عمود details');
+  }
+  
+  if (!hasDescription || !hasDetails) {
+    console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
+  }
+} catch (error) {
+  console.error('⚠️ خطأ في تحديث schema:', error);
+}
+
 // بيانات الأدمن الثابتة
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "A@asd123";
