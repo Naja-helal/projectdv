@@ -21,8 +21,7 @@ import type {
 } from '@/types'
 
 // تحديد الـ API base URL حسب البيئة
-export const API_BASE = import.meta.env.VITE_API_URL || 
-  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://salary.soqiamakkah.com/api')
+export const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 // دالة للحصول على الـ URL الكامل
 export const getApiUrl = (endpoint: string) => {

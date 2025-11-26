@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api'
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
+
+// Debug: طباعة API_BASE
+console.log('🔧 AuthContext API_BASE:', API_BASE)
+console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL)
+console.log('🔧 Mode:', import.meta.env.MODE)
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -22,6 +27,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkAuth = async (): Promise<boolean> => {
     const token = localStorage.getItem('adminToken')
+    console.log('🔍 checkAuth - Token:', token ? 'موجود' : 'غير موجود')
+    
     if (!token) {
       setIsAuthenticated(false)
       setIsLoading(false)
@@ -30,25 +37,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       // التحقق من صلاحية الرمز مع الخادم
-      const response = await fetch(`${API_BASE}/auth/verify`, {
+      const url = `${API_BASE}/auth/verify`
+      console.log('📡 Fetching:', url)
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
 
+      console.log('📥 Response status:', response.status, response.statusText)
+
       if (response.ok) {
+        console.log('✅ Auth verified successfully')
         setIsAuthenticated(true)
         setIsLoading(false)
         return true
       } else {
+        console.log('⚠️ Auth verification failed, trying refresh...')
         // إذا كان الرمز غير صالح، جرب تجديده
         const refreshed = await refreshToken()
         setIsLoading(false)
         return refreshed
       }
     } catch (error) {
-      console.error('خطأ في التحقق من الصلة:', error)
+      console.error('❌ خطأ في التحقق من الصلة:', error)
       logout()
       setIsLoading(false)
       return false
