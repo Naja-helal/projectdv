@@ -10,13 +10,22 @@ import {
   FolderOpen,
   Filter,
   Package,
+  CreditCard,
+  Layers,
+  BarChart3,
+  PieChart,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Calendar,
+  Wallet,
 } from 'lucide-react';
-import { projectApi, expenseApi, categoryApi } from '@/lib/api';
+import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi, projectTypeApi } from '@/lib/api';
 import Papa from 'papaparse';
 
 type TimeRange = 'month' | 'quarter' | 'year' | 'all';
 
-import { Expense, Project, Category } from '@/types';
+import { Expense, Project, Category, ProjectItem, PaymentMethod, ProjectType } from '@/types';
 
 export default function StatisticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('all');
@@ -39,6 +48,21 @@ export default function StatisticsPage() {
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: categoryApi.getCategories,
+  });
+
+  const { data: projectItems = [] } = useQuery<ProjectItem[]>({
+    queryKey: ['project-items'],
+    queryFn: projectItemApi.getProjectItems,
+  });
+
+  const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
+    queryKey: ['payment-methods'],
+    queryFn: paymentMethodApi.getPaymentMethods,
+  });
+
+  const { data: projectTypes = [] } = useQuery<ProjectType[]>({
+    queryKey: ['project-types'],
+    queryFn: projectTypeApi.getProjectTypes,
   });
 
   // Filter expenses by date range
@@ -189,6 +213,162 @@ export default function StatisticsPage() {
     return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
   }, [filteredExpenses, categories]);
 
+  // إحصائيات عناصر المشاريع
+  const projectItemsStats = useMemo(() => {
+    const itemsMap = new Map<number, { name: string; count: number; total: number; unit?: string }>();
+    
+    filteredExpenses.forEach(expense => {
+      if (expense.project_item_id) {
+        const item = projectItems.find(i => i.id === expense.project_item_id);
+        if (item) {
+          if (itemsMap.has(item.id)) {
+            const data = itemsMap.get(item.id)!;
+            data.count += expense.quantity || 1;
+            data.total += expense.amount;
+          } else {
+            itemsMap.set(item.id, {
+              name: item.name,
+              count: expense.quantity || 1,
+              total: expense.amount,
+              unit: item.unit || expense.unit,
+            });
+          }
+        }
+      }
+    });
+
+    return Array.from(itemsMap.values()).sort((a, b) => b.total - a.total);
+  }, [filteredExpenses, projectItems]);
+
+  // إحصائيات طرق الدفع
+  const paymentMethodsStats = useMemo(() => {
+    const methodsMap = new Map<string, { name: string; count: number; total: number }>();
+    
+    filteredExpenses.forEach(expense => {
+      const method = expense.payment_method || 'غير محدد';
+      if (methodsMap.has(method)) {
+        const data = methodsMap.get(method)!;
+        data.count += 1;
+        data.total += expense.amount;
+      } else {
+        methodsMap.set(method, {
+          name: method,
+          count: 1,
+          total: expense.amount,
+        });
+      }
+    });
+
+    return Array.from(methodsMap.values()).sort((a, b) => b.total - a.total);
+  }, [filteredExpenses]);
+
+  // إحصائيات أنواع المشاريع
+  const projectTypesStats = useMemo(() => {
+    const typesMap = new Map<string, { 
+      name: string; 
+      projectCount: number; 
+      budget: number; 
+      actual: number;
+      remaining: number;
+    }>();
+    
+    projects.forEach(project => {
+      const type = project.type || 'غير محدد';
+      const projectExpenses = filteredExpenses.filter(e => e.project_id === project.id);
+      const actualSpent = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      if (typesMap.has(type)) {
+        const data = typesMap.get(type)!;
+        data.projectCount += 1;
+        data.budget += project.budget || 0;
+        data.actual += actualSpent;
+        data.remaining += (project.budget || 0) - actualSpent;
+      } else {
+        typesMap.set(type, {
+          name: type,
+          projectCount: 1,
+          budget: project.budget || 0,
+          actual: actualSpent,
+          remaining: (project.budget || 0) - actualSpent,
+        });
+      }
+    });
+
+    return Array.from(typesMap.values()).sort((a, b) => b.budget - a.budget);
+  }, [projects, filteredExpenses]);
+
+  // إحصائيات حالة المشاريع
+  const projectStatusStats = useMemo(() => {
+    const stats = {
+      active: { count: 0, budget: 0, actual: 0 },
+      completed: { count: 0, budget: 0, actual: 0 },
+      on_hold: { count: 0, budget: 0, actual: 0 },
+      cancelled: { count: 0, budget: 0, actual: 0 },
+    };
+
+    projects.forEach(project => {
+      const status = project.status || 'active';
+      const projectExpenses = filteredExpenses.filter(e => e.project_id === project.id);
+      const actualSpent = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      if (stats[status as keyof typeof stats]) {
+        stats[status as keyof typeof stats].count += 1;
+        stats[status as keyof typeof stats].budget += project.budget || 0;
+        stats[status as keyof typeof stats].actual += actualSpent;
+      }
+    });
+
+    return stats;
+  }, [projects, filteredExpenses]);
+
+  // إحصائيات شهرية
+  const monthlyStats = useMemo(() => {
+    const monthsMap = new Map<string, { month: string; count: number; total: number }>();
+    
+    filteredExpenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long' });
+      
+      if (monthsMap.has(monthKey)) {
+        const data = monthsMap.get(monthKey)!;
+        data.count += 1;
+        data.total += expense.amount;
+      } else {
+        monthsMap.set(monthKey, {
+          month: monthName,
+          count: 1,
+          total: expense.amount,
+        });
+      }
+    });
+
+    return Array.from(monthsMap.values()).sort((a, b) => {
+      const [aYear, aMonth] = a.month.split('-');
+      const [bYear, bMonth] = b.month.split('-');
+      return Number(bYear) - Number(aYear) || Number(bMonth) - Number(aMonth);
+    });
+  }, [filteredExpenses]);
+
+  // متوسطات وإحصائيات عامة
+  const generalStats = useMemo(() => {
+    const avgExpenseAmount = expenseCount > 0 ? totalActual / expenseCount : 0;
+    const avgProjectBudget = projects.length > 0 ? totalBudget / projects.length : 0;
+    const totalRemaining = totalBudget - totalActual;
+    const spendingPercentage = totalBudget > 0 ? (totalActual / totalBudget) * 100 : 0;
+
+    return {
+      avgExpenseAmount,
+      avgProjectBudget,
+      totalRemaining,
+      spendingPercentage,
+      categoriesCount: categories.length,
+      projectItemsCount: projectItems.length,
+      paymentMethodsCount: paymentMethods.length,
+      projectTypesCount: projectTypes.length,
+    };
+  }, [expenseCount, totalActual, totalBudget, projects.length, categories.length, projectItems.length, paymentMethods.length, projectTypes.length]);
+
   // Export to CSV
   const exportToCSV = () => {
     const csvData = expensesDetailsData.map(exp => ({
@@ -242,23 +422,23 @@ export default function StatisticsPage() {
       </div>
 
       {/* Filters Card */}
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-bold text-gray-900">تصفية التقارير</h3>
+          <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+          <h3 className="text-base sm:text-lg font-bold text-gray-900">تصفية التقارير</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Time Range */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
               النطاق الزمني
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               <Button
                 variant={timeRange === 'month' ? 'default' : 'outline'}
                 onClick={() => setTimeRange('month')}
-                className="flex-1"
+                className="flex-1 min-h-[40px] text-xs sm:text-sm"
                 size="sm"
               >
                 شهري
@@ -266,7 +446,7 @@ export default function StatisticsPage() {
               <Button
                 variant={timeRange === 'quarter' ? 'default' : 'outline'}
                 onClick={() => setTimeRange('quarter')}
-                className="flex-1"
+                className="flex-1 min-h-[40px] text-xs sm:text-sm"
                 size="sm"
               >
                 ربع سنوي
@@ -274,7 +454,7 @@ export default function StatisticsPage() {
               <Button
                 variant={timeRange === 'year' ? 'default' : 'outline'}
                 onClick={() => setTimeRange('year')}
-                className="flex-1"
+                className="flex-1 min-h-[40px] text-xs sm:text-sm"
                 size="sm"
               >
                 سنوي
@@ -422,6 +602,318 @@ export default function StatisticsPage() {
           </div>
         </Card>
       </div>
+
+      {/* إحصائيات شاملة إضافية */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* المتبقي من الميزانية */}
+        <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-cyan-100 text-sm">المتبقي من الميزانية</p>
+              <h3 className="text-2xl font-bold mt-2">
+                {generalStats.totalRemaining.toLocaleString()} ر.س
+              </h3>
+              <p className="text-cyan-200 text-xs mt-1">
+                {generalStats.spendingPercentage.toFixed(1)}% مُستخدم
+              </p>
+            </div>
+            <Wallet className="h-12 w-12 text-cyan-200" />
+          </div>
+        </Card>
+
+        {/* متوسط قيمة المصروف */}
+        <Card className="p-6 bg-gradient-to-br from-pink-500 to-pink-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-pink-100 text-sm">متوسط قيمة المصروف</p>
+              <h3 className="text-2xl font-bold mt-2">
+                {generalStats.avgExpenseAmount.toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+              </h3>
+            </div>
+            <BarChart3 className="h-12 w-12 text-pink-200" />
+          </div>
+        </Card>
+
+        {/* عدد الفئات */}
+        <Card className="p-6 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-indigo-100 text-sm">عدد الفئات</p>
+              <h3 className="text-3xl font-bold mt-2">{generalStats.categoriesCount}</h3>
+            </div>
+            <Package className="h-12 w-12 text-indigo-200" />
+          </div>
+        </Card>
+
+        {/* عدد عناصر المشاريع */}
+        <Card className="p-6 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-teal-100 text-sm">عناصر المشاريع</p>
+              <h3 className="text-3xl font-bold mt-2">{generalStats.projectItemsCount}</h3>
+            </div>
+            <Layers className="h-12 w-12 text-teal-200" />
+          </div>
+        </Card>
+      </div>
+
+      {/* إحصائيات حالة المشاريع */}
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <PieChart className="h-5 w-5" />
+          إحصائيات حالة المشاريع
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* مشاريع نشطة */}
+          <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <h4 className="font-semibold text-green-900">نشط</h4>
+            </div>
+            <p className="text-2xl font-bold text-green-700">{projectStatusStats.active.count}</p>
+            <p className="text-sm text-green-600 mt-1">
+              الميزانية: {projectStatusStats.active.budget.toLocaleString()} ر.س
+            </p>
+            <p className="text-sm text-green-600">
+              الإنفاق: {projectStatusStats.active.actual.toLocaleString()} ر.س
+            </p>
+          </div>
+
+          {/* مشاريع مكتملة */}
+          <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
+              <h4 className="font-semibold text-blue-900">مكتمل</h4>
+            </div>
+            <p className="text-2xl font-bold text-blue-700">{projectStatusStats.completed.count}</p>
+            <p className="text-sm text-blue-600 mt-1">
+              الميزانية: {projectStatusStats.completed.budget.toLocaleString()} ر.س
+            </p>
+            <p className="text-sm text-blue-600">
+              الإنفاق: {projectStatusStats.completed.actual.toLocaleString()} ر.س
+            </p>
+          </div>
+
+          {/* مشاريع متوقفة */}
+          <div className="p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="h-6 w-6 text-yellow-600" />
+              <h4 className="font-semibold text-yellow-900">متوقف مؤقتاً</h4>
+            </div>
+            <p className="text-2xl font-bold text-yellow-700">{projectStatusStats.on_hold.count}</p>
+            <p className="text-sm text-yellow-600 mt-1">
+              الميزانية: {projectStatusStats.on_hold.budget.toLocaleString()} ر.س
+            </p>
+            <p className="text-sm text-yellow-600">
+              الإنفاق: {projectStatusStats.on_hold.actual.toLocaleString()} ر.س
+            </p>
+          </div>
+
+          {/* مشاريع ملغاة */}
+          <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
+            <div className="flex items-center gap-3 mb-2">
+              <XCircle className="h-6 w-6 text-red-600" />
+              <h4 className="font-semibold text-red-900">ملغي</h4>
+            </div>
+            <p className="text-2xl font-bold text-red-700">{projectStatusStats.cancelled.count}</p>
+            <p className="text-sm text-red-600 mt-1">
+              الميزانية: {projectStatusStats.cancelled.budget.toLocaleString()} ر.س
+            </p>
+            <p className="text-sm text-red-600">
+              الإنفاق: {projectStatusStats.cancelled.actual.toLocaleString()} ر.س
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* إحصائيات أنواع المشاريع */}
+      {projectTypesStats.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Layers className="h-5 w-5" />
+            إحصائيات أنواع المشاريع
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النوع</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">عدد المشاريع</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الميزانية الإجمالية</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الإنفاق الفعلي</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">المتبقي</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">نسبة الإنفاق</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectTypesStats.map((type, idx) => (
+                  <tr key={idx} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{type.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{type.projectCount}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {type.budget.toLocaleString()} ر.س
+                    </td>
+                    <td className="px-4 py-3 text-gray-900">
+                      {type.actual.toLocaleString()} ر.س
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={type.remaining >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                        {type.remaining.toLocaleString()} ر.س
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'bg-red-600' :
+                              type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'bg-orange-600' :
+                              'bg-green-600'
+                            }`}
+                            style={{ width: `${Math.min(type.budget > 0 ? (type.actual / type.budget) * 100 : 0, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-gray-700 font-medium min-w-[50px]">
+                          {type.budget > 0 ? ((type.actual / type.budget) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* إحصائيات عناصر المشاريع */}
+      {projectItemsStats.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            أكثر عناصر المشاريع استخداماً
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">العنصر</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الكمية المستخدمة</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الوحدة</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">إجمالي القيمة</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النسبة من الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectItemsStats.slice(0, 10).map((item, idx) => (
+                  <tr key={idx} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{item.name}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {item.count.toLocaleString('ar-SA', { maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{item.unit || '-'}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {item.total.toLocaleString()} ر.س
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-indigo-600 h-2 rounded-full"
+                            style={{ width: `${totalActual > 0 ? (item.total / totalActual) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="text-gray-700 font-medium min-w-[50px]">
+                          {totalActual > 0 ? ((item.total / totalActual) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* إحصائيات طرق الدفع */}
+      {paymentMethodsStats.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            إحصائيات طرق الدفع
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paymentMethodsStats.map((method, idx) => (
+              <div key={idx} className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-2">{method.name}</h4>
+                <p className="text-2xl font-bold text-gray-800">
+                  {method.total.toLocaleString()} ر.س
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {method.count} عملية ({totalActual > 0 ? ((method.total / totalActual) * 100).toFixed(1) : 0}%)
+                </p>
+                <div className="mt-2 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{ width: `${totalActual > 0 ? (method.total / totalActual) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* الإحصائيات الشهرية */}
+      {monthlyStats.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            الإحصائيات الشهرية
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الشهر</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">عدد المصروفات</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">إجمالي الإنفاق</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">متوسط المصروف</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النسبة من الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyStats.slice(0, 12).map((month, idx) => (
+                  <tr key={idx} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{month.month}</td>
+                    <td className="px-4 py-3 text-gray-600">{month.count}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {month.total.toLocaleString()} ر.س
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {(month.total / month.count).toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-purple-600 h-2 rounded-full"
+                            style={{ width: `${totalActual > 0 ? (month.total / totalActual) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="text-gray-700 font-medium min-w-[50px]">
+                          {totalActual > 0 ? ((month.total / totalActual) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Project Details Table */}
       <Card className="p-6">

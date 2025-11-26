@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { categoryApi } from '@/lib/api'
+import EditCategoryForm from '@/components/forms/EditCategoryForm'
+import type { Category } from '@/types'
 
 interface CreateCategoryData {
   name: string
@@ -20,6 +22,8 @@ interface CreateCategoryData {
 
 export default function CategoriesPage() {
   const [showForm, setShowForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const queryClient = useQueryClient()
 
   // جلب الفئات
@@ -54,6 +58,11 @@ export default function CategoriesPage() {
 
   const onSubmit = (data: CreateCategoryData) => {
     createMutation.mutate(data)
+  }
+
+  const handleEdit = (category: Category) => {
+    setSelectedCategory(category)
+    setShowEditForm(true)
   }
 
   const handleDelete = (id: number, name: string) => {
@@ -158,14 +167,24 @@ export default function CategoriesPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(category.id, category.name)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  🗑️
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(category)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    ✏️
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(category.id, category.name)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️
+                  </Button>
+                </div>
               </div>
               
               {category.description && (
@@ -312,6 +331,16 @@ export default function CategoriesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* نموذج تعديل فئة */}
+      <EditCategoryForm
+        category={selectedCategory}
+        open={showEditForm}
+        onClose={() => {
+          setShowEditForm(false)
+          setSelectedCategory(null)
+        }}
+      />
     </div>
   )
 }

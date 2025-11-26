@@ -45,9 +45,9 @@ export default function Dashboard() {
   const totalBudget = projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0)
 
   return (
-    <div className="space-y-6 p-3 sm:p-4 lg:p-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* رأس الصفحة مع تدرج لوني */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-2xl">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-2xl">
         <div className="text-center">
           <div className="text-6xl mb-4">🚀</div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">تطبيق إدارة المشاريع المتقدم</h1>

@@ -171,17 +171,17 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* رأس الصفحة */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Folder className="h-8 w-8 text-blue-600" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Folder className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             المشاريع
           </h1>
-          <p className="text-gray-600 mt-1">إدارة المشاريع والميزانيات</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">إدارة المشاريع والميزانيات</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto gap-2 min-h-[48px]">
           <Plus className="h-4 w-4" />
           مشروع جديد
         </Button>
@@ -189,15 +189,15 @@ export default function ProjectsPage() {
 
       {/* إحصائيات مفصلة */}
       {statistics && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          <Card className="p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
+          <Card className="p-3 sm:p-4">
             <div className="text-center">
               <p className="text-xs text-gray-500 mb-1">إجمالي</p>
-              <p className="text-2xl font-bold text-gray-900">{statistics.total}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{statistics.total}</p>
               <p className="text-xs text-gray-400">مشروع</p>
             </div>
           </Card>
-          <Card className="p-4 bg-green-50">
+          <Card className="p-3 sm:p-4 bg-green-50">
             <div className="text-center">
               <p className="text-xs text-green-600 mb-1">نشط</p>
               <p className="text-2xl font-bold text-green-700">{statistics.active}</p>
@@ -250,11 +250,11 @@ export default function ProjectsPage() {
       )}
 
       {/* شريط البحث والفلترة */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card className="p-3 sm:p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
           {/* البحث */}
           <div className="md:col-span-2">
-            <Label htmlFor="search" className="text-sm mb-2 block">بحث</Label>
+            <Label htmlFor="search" className="text-xs sm:text-sm mb-2 block">بحث</Label>
             <div className="relative">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -265,14 +265,14 @@ export default function ProjectsPage() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pr-10"
+                className="pr-10 min-h-[44px] text-sm sm:text-base"
               />
             </div>
           </div>
 
           {/* فلترة الحالة */}
           <div>
-            <Label htmlFor="status" className="text-sm mb-2 block">الحالة</Label>
+            <Label htmlFor="status" className="text-xs sm:text-sm mb-2 block">الحالة</Label>
             <select
               id="status"
               value={statusFilter}
@@ -280,7 +280,7 @@ export default function ProjectsPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full p-2 border rounded-md text-sm"
+              className="w-full p-3 border rounded-md text-sm sm:text-base min-h-[44px]"
             >
               <option value="all">الكل</option>
               <option value="active">نشط</option>
@@ -292,7 +292,7 @@ export default function ProjectsPage() {
 
           {/* فلترة النوع */}
           <div>
-            <Label htmlFor="type" className="text-sm mb-2 block">النوع</Label>
+            <Label htmlFor="type" className="text-xs sm:text-sm mb-2 block">النوع</Label>
             <select
               id="type"
               value={typeFilter}
@@ -300,7 +300,7 @@ export default function ProjectsPage() {
                 setTypeFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full p-2 border rounded-md text-sm"
+              className="w-full p-3 border rounded-md text-sm sm:text-base min-h-[44px]"
             >
               <option value="all">الكل</option>
               {uniqueTypes.map((type) => (
@@ -364,7 +364,7 @@ export default function ProjectsPage() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             {paginatedProjects.map((project) => {
             const completionPercentage = project.completion_percentage || 0;
             const remaining = (project.budget || 0) - (project.total_spent || 0);
@@ -372,15 +372,15 @@ export default function ProjectsPage() {
             return (
               <Card
                 key={project.id}
-                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                className="p-4 sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
                 style={{ borderRight: `4px solid ${project.color || '#3b82f6'}` }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1" onClick={() => handleView(project)}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">{project.name}</h3>
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0">
+                  <div className="flex-1 w-full" onClick={() => handleView(project)}>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">{project.name}</h3>
                       {project.code && (
-                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                           {project.code}
                         </span>
                       )}
@@ -393,37 +393,37 @@ export default function ProjectsPage() {
                     </div>
 
                     {project.description && (
-                      <p className="text-gray-600 mb-3 text-sm">{project.description}</p>
+                      <p className="text-gray-600 mb-3 text-xs sm:text-sm">{project.description}</p>
                     )}
 
-                    <div className="grid grid-cols-5 gap-4 mb-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-3">
                       <div>
                         <p className="text-xs text-gray-500">قيمة العقد</p>
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-base sm:text-lg font-bold text-blue-600">
                           {(project.budget || 0).toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">الإنفاق المتوقع</p>
-                        <p className="text-lg font-bold text-indigo-600">
+                        <p className="text-base sm:text-lg font-bold text-indigo-600">
                           {(project.expected_spending || 0).toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">الإنفاق الفعلي</p>
-                        <p className="text-lg font-bold text-purple-600">
+                        <p className="text-base sm:text-lg font-bold text-purple-600">
                           {(project.total_spent || 0).toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">المتبقي</p>
-                        <p className={`text-lg font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <p className={`text-base sm:text-lg font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {remaining.toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">نسبة الإنجاز</p>
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-base sm:text-lg font-bold text-gray-900">
                           {completionPercentage.toFixed(1)}%
                         </p>
                       </div>
@@ -445,12 +445,12 @@ export default function ProjectsPage() {
                     )}
                   </div>
 
-                  <div className="flex gap-2 mr-4">
+                  <div className="flex gap-1 sm:gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleView(project)}
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-blue-600 hover:text-blue-700 min-h-[40px] w-10 sm:w-auto p-2"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -458,7 +458,7 @@ export default function ProjectsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(project)}
-                      className="text-gray-600 hover:text-gray-700"
+                      className="text-gray-600 hover:text-gray-700 min-h-[40px] w-10 sm:w-auto p-2"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -466,7 +466,7 @@ export default function ProjectsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(project)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 min-h-[40px] w-10 sm:w-auto p-2"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

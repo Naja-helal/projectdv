@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { projectItemApi } from '@/lib/api'
+import EditProjectItemForm from '@/components/forms/EditProjectItemForm'
+import type { ProjectItem } from '@/types'
 
 interface CreateProjectItemData {
   name: string
@@ -21,6 +23,8 @@ interface CreateProjectItemData {
 
 export default function ProjectItems() {
   const [showForm, setShowForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<ProjectItem | null>(null)
   const queryClient = useQueryClient()
 
   // جلب عناصر المشروع
@@ -55,6 +59,11 @@ export default function ProjectItems() {
 
   const onSubmit = (data: CreateProjectItemData) => {
     createMutation.mutate(data)
+  }
+
+  const handleEdit = (item: ProjectItem) => {
+    setSelectedItem(item)
+    setShowEditForm(true)
   }
 
   const handleDelete = (id: number, name: string) => {
@@ -164,14 +173,24 @@ export default function ProjectItems() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(item.id, item.name)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  🗑️
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(item)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    ✏️
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(item.id, item.name)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️
+                  </Button>
+                </div>
               </div>
               
               {item.description && (
@@ -350,6 +369,16 @@ export default function ProjectItems() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* نموذج تعديل عنصر */}
+      <EditProjectItemForm
+        projectItem={selectedItem}
+        open={showEditForm}
+        onClose={() => {
+          setShowEditForm(false)
+          setSelectedItem(null)
+        }}
+      />
     </div>
   )
 }

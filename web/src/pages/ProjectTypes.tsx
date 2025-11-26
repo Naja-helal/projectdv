@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { projectTypeApi } from '@/lib/api'
+import EditProjectTypeForm from '@/components/forms/EditProjectTypeForm'
+import type { ProjectType } from '@/types'
 
 interface CreateProjectTypeData {
   name: string
@@ -20,6 +22,8 @@ interface CreateProjectTypeData {
 
 export default function ProjectTypes() {
   const [showForm, setShowForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedType, setSelectedType] = useState<ProjectType | null>(null)
   const queryClient = useQueryClient()
 
   // جلب أنواع المشاريع
@@ -54,6 +58,11 @@ export default function ProjectTypes() {
 
   const onSubmit = (data: CreateProjectTypeData) => {
     createMutation.mutate(data)
+  }
+
+  const handleEdit = (type: ProjectType) => {
+    setSelectedType(type)
+    setShowEditForm(true)
   }
 
   const handleDelete = (id: number, name: string) => {
@@ -158,14 +167,24 @@ export default function ProjectTypes() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(type.id, type.name)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  🗑️
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(type)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    ✏️
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(type.id, type.name)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️
+                  </Button>
+                </div>
               </div>
               
               {type.description && (
@@ -312,6 +331,16 @@ export default function ProjectTypes() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* نموذج تعديل نوع مشروع */}
+      <EditProjectTypeForm
+        projectType={selectedType}
+        open={showEditForm}
+        onClose={() => {
+          setShowEditForm(false)
+          setSelectedType(null)
+        }}
+      />
     </div>
   )
 }

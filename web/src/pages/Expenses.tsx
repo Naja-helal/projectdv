@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ExpenseForm from '@/components/forms/ExpenseForm'
-import { Trash2, FolderOpen } from 'lucide-react'
+import EditExpenseForm from '@/components/forms/EditExpenseForm'
+import { Trash2, FolderOpen, Edit } from 'lucide-react'
 import { expenseApi, categoryApi, projectApi } from '@/lib/api'
 import type { Expense, ExpenseFilters } from '@/types'
 import { format } from 'date-fns'
@@ -12,6 +13,8 @@ import { ar } from 'date-fns/locale'
 
 export default function Expenses() {
   const [showForm, setShowForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [filters, setFilters] = useState<ExpenseFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedExpenses, setSelectedExpenses] = useState<number[]>([])
@@ -47,6 +50,11 @@ export default function Expenses() {
       queryClient.invalidateQueries({ queryKey: ['stats'] })
     }
   })
+
+  const handleEdit = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setShowEditForm(true)
+  }
 
   const handleDelete = (expense: Expense) => {
     if (confirm('هل أنت متأكد من حذف هذا المصروف؟')) {
@@ -398,14 +406,24 @@ export default function Expenses() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(expense)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-1 justify-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(expense)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(expense)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -450,14 +468,24 @@ export default function Expenses() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(expense)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(expense)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 -mt-1"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(expense)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -512,6 +540,16 @@ export default function Expenses() {
           }}
         />
       )}
+
+      {/* نموذج تعديل مصروف */}
+      <EditExpenseForm
+        expense={selectedExpense}
+        open={showEditForm}
+        onClose={() => {
+          setShowEditForm(false)
+          setSelectedExpense(null)
+        }}
+      />
     </div>
   )
 }

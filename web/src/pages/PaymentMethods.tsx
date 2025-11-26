@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { paymentMethodApi } from '@/lib/api'
+import EditPaymentMethodForm from '@/components/forms/EditPaymentMethodForm'
+import type { PaymentMethod } from '@/types'
 
 interface CreatePaymentMethodData {
   name: string
@@ -20,6 +22,8 @@ interface CreatePaymentMethodData {
 
 export default function PaymentMethods() {
   const [showForm, setShowForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
   const queryClient = useQueryClient()
 
   // جلب طرق الدفع
@@ -54,6 +58,11 @@ export default function PaymentMethods() {
 
   const onSubmit = (data: CreatePaymentMethodData) => {
     createMutation.mutate(data)
+  }
+
+  const handleEdit = (method: PaymentMethod) => {
+    setSelectedMethod(method)
+    setShowEditForm(true)
   }
 
   const handleDelete = (id: number, name: string) => {
@@ -158,14 +167,24 @@ export default function PaymentMethods() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(method.id, method.name)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  🗑️
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(method)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    ✏️
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(method.id, method.name)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    🗑️
+                  </Button>
+                </div>
               </div>
               
               {method.description && (
@@ -312,6 +331,16 @@ export default function PaymentMethods() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* نموذج تعديل طريقة دفع */}
+      <EditPaymentMethodForm
+        paymentMethod={selectedMethod}
+        open={showEditForm}
+        onClose={() => {
+          setShowEditForm(false)
+          setSelectedMethod(null)
+        }}
+      />
     </div>
   )
 }
