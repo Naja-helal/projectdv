@@ -97,7 +97,6 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="مثال: أعمال الخرسانة"
               required
-              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -108,7 +107,6 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="مثال: CONC"
-              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -118,7 +116,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
               id="edit-unit"
               value={formData.unit}
               onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded-lg"
             >
               <option value="">اختر وحدة القياس</option>
               {predefinedUnits.map(unit => (
@@ -135,7 +133,6 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="وصف عنصر المشروع..."
               rows={3}
-              className="text-base p-4 border-2 rounded-xl min-h-[100px] resize-none focus:border-blue-500"
             />
           </div>
 

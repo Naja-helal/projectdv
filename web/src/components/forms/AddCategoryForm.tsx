@@ -82,7 +82,7 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="مثال: اشتراكات مواقع/هوست"
                 required
-                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
               />
             </div>
 
@@ -93,7 +93,7 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
                 value={formData.code}
                 onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
                 placeholder="مثال: hosting"
-                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
               />
             </div>
 
@@ -105,7 +105,7 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="وصف مختصر للفئة..."
                 rows={3}
-                className="text-base p-4 border-2 rounded-xl min-h-[100px] resize-none focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl resize-none focus:border-blue-500"
               />
             </div>
 

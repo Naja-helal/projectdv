@@ -90,7 +90,6 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="مثال: نقدي"
               required
-              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -101,7 +100,6 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="مثال: CASH"
-              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -113,7 +111,6 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="وصف طريقة الدفع..."
               rows={3}
-              className="text-base p-4 border-2 rounded-xl min-h-[100px] resize-none focus:border-blue-500"
             />
           </div>
 
