@@ -235,7 +235,6 @@ export default function CategoriesPage() {
                 <Input
                   {...register('name', { required: 'اسم الفئة مطلوب' })}
                   placeholder="مثال: اشتراكات المواقع"
-                  className="min-h-[56px] text-base p-4"
                 />
                 {errors.name && (
                   <span className="text-sm text-destructive">{errors.name.message}</span>
@@ -247,7 +246,6 @@ export default function CategoriesPage() {
                 <Input
                   {...register('code')}
                   placeholder="مثال: SUB"
-                  className="min-h-[56px] text-base p-4"
                 />
               </div>
             </div>
@@ -258,7 +256,6 @@ export default function CategoriesPage() {
                 {...register('description')}
                 placeholder="وصف مختصر للفئة..."
                 rows={3}
-                className="min-h-[100px] text-base p-4"
               />
             </div>
 

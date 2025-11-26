@@ -15,27 +15,11 @@ interface ProjectFormProps {
 export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const queryClient = useQueryClient();
   
-  // دالة محسّنة لإزالة الأصفار البادئة - تعمل على الويب والموبايل
+  // دالة لإزالة الأصفار البادئة من الأرقام
   const removeLeadingZeros = (value: string): string => {
     if (!value || value === '' || value === '0' || value === '0.') return value;
     const cleaned = value.replace(/^0+(?=\d)/, '');
     return cleaned || '0';
-  };
-
-  // دالة للتعامل مع الإدخال الفوري على الموبايل
-  const handleNumericInput = (e: React.FormEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const cursorPosition = input.selectionStart;
-    const oldValue = input.value;
-    const newValue = removeLeadingZeros(oldValue);
-    
-    if (newValue !== oldValue) {
-      input.value = newValue;
-      if (cursorPosition !== null) {
-        const diff = oldValue.length - newValue.length;
-        input.setSelectionRange(cursorPosition - diff, cursorPosition - diff);
-      }
-    }
   };
   
   const [formData, setFormData] = useState<CreateProjectData>({
@@ -142,7 +126,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="أدخل اسم المشروع"
-            className={`min-h-[56px] text-base p-4 border-2 rounded-xl ${errors.name ? 'border-red-500' : ''}`}
+            className={`min-h-[48px] text-base border-2 rounded-xl ${errors.name ? 'border-red-500' : ''}`}
           />
           {errors.name && <p className="text-sm text-red-600 font-medium">{errors.name}</p>}
         </div>
@@ -157,7 +141,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="مثال: P001"
-              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
+              className="min-h-[48px] text-base border-2 rounded-xl"
             />
           </div>
 
@@ -167,7 +151,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className={`w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${errors.type ? 'border-red-500' : ''}`}
+              className={`w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${errors.type ? 'border-red-500' : ''}`}
             >
               <option value="">اختر نوع المشروع</option>
               {projectTypesOld.map((type) => (
@@ -186,7 +170,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           <select
             value={formData.project_type_id || ''}
             onChange={(e) => setFormData({ ...formData, project_type_id: e.target.value ? parseInt(e.target.value) : undefined })}
-            className="w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
             <option value="">اختر التصنيف</option>
             {projectTypes.map((type) => (
@@ -205,20 +189,21 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="budget" className="text-base font-semibold">قيمة العقد (ر.س)</Label>
             <Input
               id="budget"
-              type="text"
+              type="number"
               inputMode="decimal"
-              pattern="[0-9]*\.?[0-9]*"
+              pattern="[0-9]*"
+              min="0"
+              step="0.01"
               value={formData.budget}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);
                 setFormData({ ...formData, budget: parseFloat(cleaned) || 0 });
               }}
-              onInput={handleNumericInput}
               onBlur={(e) => {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
               placeholder="0.00"
-              className={`min-h-[56px] text-base p-4 border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
+              className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
             />
             {errors.budget && <p className="text-sm text-red-600 font-medium">{errors.budget}</p>}
           </div>
@@ -228,31 +213,32 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="expected_spending" className="text-base font-semibold">الإنفاق المتوقع (ر.س)</Label>
             <Input
               id="expected_spending"
-              type="text"
+              type="number"
               inputMode="decimal"
-              pattern="[0-9]*\.?[0-9]*"
+              pattern="[0-9]*"
+              min="0"
+              step="0.01"
               value={formData.expected_spending}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);
                 setFormData({ ...formData, expected_spending: parseFloat(cleaned) || 0 });
               }}
-              onInput={handleNumericInput}
               onBlur={(e) => {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
               placeholder="0.00"
-              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
+              className={`min-h-[48px] text-base border-2 rounded-xl ${errors.expected_spending ? 'border-red-500' : ''}`}
             />
           </div>
         </div>
 
-        {/* الوصف */}
+        {/* الحالة */}
         <div className="space-y-3">
           <Label htmlFor="status" className="text-base font-semibold">الحالة</Label>
           <select
             value={formData.status}
             onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -281,7 +267,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                   start_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
                 })
               }
-              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
+              className="min-h-[48px] text-base border-2 rounded-xl"
             />
           </div>
 
@@ -300,7 +286,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                   end_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
                 })
               }
-              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
+              className="min-h-[48px] text-base border-2 rounded-xl"
             />
           </div>
         </div>
@@ -340,19 +326,19 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
 
       {/* أزرار الحفظ والإلغاء */}
       <div className="flex gap-3 pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSuccess}
-          disabled={mutation.isPending}
-          className="flex-1 min-h-[56px] text-base font-semibold rounded-xl"
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onSuccess} 
+          disabled={mutation.isPending} 
+          className="flex-1 min-h-[48px] text-base font-semibold rounded-xl"
         >
           إلغاء
         </Button>
-        <Button
-          type="submit"
-          disabled={mutation.isPending}
-          className="flex-1 min-h-[56px] text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700"
+        <Button 
+          type="submit" 
+          disabled={mutation.isPending} 
+          className="flex-1 min-h-[48px] text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700"
         >
           {mutation.isPending ? 'جاري الحفظ...' : project ? 'تحديث المشروع' : 'إضافة المشروع'}
         </Button>

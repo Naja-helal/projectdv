@@ -235,7 +235,6 @@ export default function PaymentMethods() {
                 <Input
                   {...register('name', { required: 'اسم طريقة الدفع مطلوب' })}
                   placeholder="مثال: نقداً"
-                  className="min-h-[56px] text-base p-4"
                 />
                 {errors.name && (
                   <span className="text-sm text-destructive">{errors.name.message}</span>
@@ -247,7 +246,6 @@ export default function PaymentMethods() {
                 <Input
                   {...register('code')}
                   placeholder="مثال: CASH"
-                  className="min-h-[56px] text-base p-4"
                 />
               </div>
             </div>
@@ -258,7 +256,6 @@ export default function PaymentMethods() {
                 {...register('description')}
                 placeholder="وصف مختصر لطريقة الدفع..."
                 rows={3}
-                className="min-h-[100px] text-base p-4"
               />
             </div>
 
