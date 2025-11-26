@@ -1382,9 +1382,9 @@ app.use("*", (req, res) => {
 // بدء الخادم
 app.listen(PORT, () => {
   const serverUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://salary.soqiamakkah.com' 
+    ? `Port ${PORT}` 
     : `http://localhost:${PORT}`;
-  console.log(`🚀 الخادم يعمل على ${serverUrl}`);
+  console.log(`🚀 السيرفر يعمل على ${serverUrl}`);
   console.log(`📁 قاعدة البيانات: ${dbPath}`);
 });
 
