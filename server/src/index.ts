@@ -4,6 +4,7 @@ import cors from "cors";
 import compression from "compression";
 import path from "path";
 import dotenv from "dotenv";
+import fs from "fs";
 
 // تحميل متغيرات البيئة
 if (process.env.NODE_ENV === 'production') {
@@ -18,6 +19,14 @@ const PORT = process.env.PORT || 5175;
 
 // إعداد قاعدة البيانات
 const dbPath = process.env.DB_PATH || path.join(__dirname, "../expenses.db");
+
+// إنشاء المجلد إذا لم يكن موجوداً
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
+}
+
 const db = new Database(dbPath);
 
 // بيانات الأدمن الثابتة
