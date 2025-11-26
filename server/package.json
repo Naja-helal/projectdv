@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "start:prod": "NODE_ENV=production node dist/index.js",
-    "postinstall": "node add-expense-fields.js",
+    "migrate": "node add-expense-fields.js",
     "db:init": "tsx src/scripts/init-db.ts",
     "db:seed": "tsx src/scripts/seed-db.ts",
     "db:demo": "tsx src/scripts/demo-data.ts"
