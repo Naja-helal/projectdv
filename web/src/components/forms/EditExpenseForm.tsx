@@ -200,6 +200,23 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-1">
+          {/* رسالة تنبيه عامة للأخطاء */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-red-50 border-2 border-red-500 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-red-700 mb-2">يرجى تصحيح الأخطاء التالية:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
+                    {Object.entries(errors).map(([field, error]) => (
+                      <li key={field} className="font-medium">{error.message || 'هذا الحقل مطلوب'}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* الحقول الأساسية */}
           <div className="space-y-5">
             {/* الوصف */}

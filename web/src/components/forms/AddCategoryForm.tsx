@@ -21,6 +21,7 @@ interface AddCategoryFormProps {
 
 export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps) {
   const queryClient = useQueryClient()
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -40,6 +41,7 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
         icon: '',
         description: '',
       })
+      setErrors({})
       onClose()
     },
     onError: (error) => {
@@ -49,7 +51,19 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name.trim()) return
+    
+    // التحقق من الحقول المطلوبة
+    const newErrors: Record<string, string> = {}
+    if (!formData.name.trim()) {
+      newErrors.name = 'اسم الفئة مطلوب'
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    setErrors({})
     createMutation.mutate(formData)
   }
 
@@ -73,6 +87,23 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 px-1">
+          {/* رسالة تنبيه عامة للأخطاء */}
+          {Object.keys(errors).length > 0 && (
+            <div className="p-4 bg-red-50 border-2 border-red-500 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-red-700 mb-2">يرجى تصحيح الأخطاء التالية:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
+                    {Object.entries(errors).map(([field, message]) => (
+                      <li key={field} className="font-medium">{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-5">
             <div className="space-y-3">
               <Label htmlFor="name" className="text-base font-semibold">اسم الفئة *</Label>
@@ -81,9 +112,9 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="مثال: اشتراكات مواقع/هوست"
-                required
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                className={`text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500 ${errors.name ? 'border-red-500' : ''}`}
               />
+              {errors.name && <p className="text-sm text-red-600 font-medium">{errors.name}</p>}
             </div>
 
             <div className="space-y-3">
