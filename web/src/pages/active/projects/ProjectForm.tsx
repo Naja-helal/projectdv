@@ -142,7 +142,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="أدخل اسم المشروع"
-            className={`min-h-[48px] text-base border-2 rounded-xl ${errors.name ? 'border-red-500' : ''}`}
+            className={`min-h-[56px] text-base p-4 border-2 rounded-xl ${errors.name ? 'border-red-500' : ''}`}
           />
           {errors.name && <p className="text-sm text-red-600 font-medium">{errors.name}</p>}
         </div>
@@ -157,7 +157,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="مثال: P001"
-              className="min-h-[48px] text-base border-2 rounded-xl"
+              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
             />
           </div>
 
@@ -167,7 +167,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className={`w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${errors.type ? 'border-red-500' : ''}`}
+              className={`w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${errors.type ? 'border-red-500' : ''}`}
             >
               <option value="">اختر نوع المشروع</option>
               {projectTypesOld.map((type) => (
@@ -186,7 +186,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           <select
             value={formData.project_type_id || ''}
             onChange={(e) => setFormData({ ...formData, project_type_id: e.target.value ? parseInt(e.target.value) : undefined })}
-            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
             <option value="">اختر التصنيف</option>
             {projectTypes.map((type) => (
@@ -218,7 +218,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
               placeholder="0.00"
-              className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
+              className={`min-h-[56px] text-base p-4 border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
             />
             {errors.budget && <p className="text-sm text-red-600 font-medium">{errors.budget}</p>}
           </div>
@@ -241,18 +241,18 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
               placeholder="0.00"
-              className="min-h-[48px] text-base border-2 rounded-xl"
+              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
             />
           </div>
         </div>
 
-        {/* الحالة */}
+        {/* الوصف */}
         <div className="space-y-3">
           <Label htmlFor="status" className="text-base font-semibold">الحالة</Label>
           <select
             value={formData.status}
             onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
-            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full p-5 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -281,7 +281,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                   start_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
                 })
               }
-              className="min-h-[48px] text-base border-2 rounded-xl"
+              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
             />
           </div>
 
@@ -300,7 +300,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
                   end_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
                 })
               }
-              className="min-h-[48px] text-base border-2 rounded-xl"
+              className="min-h-[56px] text-base p-4 border-2 rounded-xl"
             />
           </div>
         </div>
@@ -340,19 +340,19 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
 
       {/* أزرار الحفظ والإلغاء */}
       <div className="flex gap-3 pt-4 border-t">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onSuccess} 
-          disabled={mutation.isPending} 
-          className="flex-1 min-h-[48px] text-base font-semibold rounded-xl"
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onSuccess}
+          disabled={mutation.isPending}
+          className="flex-1 min-h-[56px] text-base font-semibold rounded-xl"
         >
           إلغاء
         </Button>
-        <Button 
-          type="submit" 
-          disabled={mutation.isPending} 
-          className="flex-1 min-h-[48px] text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700"
+        <Button
+          type="submit"
+          disabled={mutation.isPending}
+          className="flex-1 min-h-[56px] text-base font-semibold rounded-xl bg-blue-600 hover:bg-blue-700"
         >
           {mutation.isPending ? 'جاري الحفظ...' : project ? 'تحديث المشروع' : 'إضافة المشروع'}
         </Button>

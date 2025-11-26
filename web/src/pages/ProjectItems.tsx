@@ -249,6 +249,7 @@ export default function ProjectItems() {
                 <Input
                   {...register('name', { required: 'اسم العنصر مطلوب' })}
                   placeholder="مثال: مواد بناء"
+                  className="min-h-[56px] text-base p-4"
                 />
                 {errors.name && (
                   <span className="text-sm text-destructive">{errors.name.message}</span>
@@ -260,6 +261,7 @@ export default function ProjectItems() {
                 <Input
                   {...register('code')}
                   placeholder="مثال: MAT"
+                  className="min-h-[56px] text-base p-4"
                 />
               </div>
             </div>
@@ -270,6 +272,7 @@ export default function ProjectItems() {
                 {...register('description')}
                 placeholder="وصف مختصر للعنصر..."
                 rows={3}
+                className="min-h-[100px] text-base p-4"
               />
             </div>
 
@@ -294,6 +297,7 @@ export default function ProjectItems() {
                 id="unit-input"
                 {...register('unit')}
                 placeholder="مثال: طن، متر، قطعة..."
+                className="min-h-[56px] text-base p-4"
               />
             </div>
 

@@ -97,7 +97,7 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="أدخل اسم العنصر"
-          className={errors.name ? 'border-red-500' : ''}
+          className={`min-h-[56px] text-base p-4 ${errors.name ? 'border-red-500' : ''}`}
         />
         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
       </div>
@@ -111,6 +111,7 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="أدخل وصفاً للعنصر (اختياري)"
           rows={3}
+          className="min-h-[100px] text-base p-4"
         />
       </div>
 
@@ -132,7 +133,7 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
             e.target.value = removeLeadingZeros(e.target.value);
           }}
           placeholder="0.00"
-          className={errors.budget ? 'border-red-500' : ''}
+          className={`min-h-[56px] text-base p-4 ${errors.budget ? 'border-red-500' : ''}`}
         />
         {errors.budget && <p className="text-red-500 text-sm mt-1">{errors.budget}</p>}
       </div>
@@ -155,6 +156,7 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
             e.target.value = removeLeadingZeros(e.target.value);
           }}
           placeholder="0"
+          className="min-h-[56px] text-base p-4"
         />
         <p className="text-xs text-gray-500 mt-1">الأرقام الأصغر تظهر أولاً</p>
       </div>
