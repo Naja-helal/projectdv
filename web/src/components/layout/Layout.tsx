@@ -2,17 +2,20 @@ import { Link, useLocation } from 'react-router-dom'
 import { ReactNode, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, Menu, X } from 'lucide-react'
+import { LogOut, Menu, X, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface LayoutProps {
   children: ReactNode
 }
 
-const navigation = [
+const mainNavigation = [
   { name: 'لوحة التحكم', href: '/', icon: '📊' },
   { name: 'المشاريع', href: '/projects', icon: '📁' },
   { name: 'المصروفات', href: '/expenses', icon: '💰' },
   { name: 'الإحصائيات والتقارير', href: '/statistics', icon: '📈' },
+]
+
+const settingsNavigation = [
   { name: 'الفئات', href: '/categories', icon: '🏷️' },
   { name: 'عناصر المشاريع', href: '/project-items', icon: '📦' },
   { name: 'طرق الدفع', href: '/payment-methods', icon: '💳' },
@@ -23,6 +26,15 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { logout } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  
+  // استخدام localStorage لحفظ حالة قسم الإعدادات
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
+    const savedState = localStorage.getItem('settingsMenuOpen')
+    return savedState === null ? false : savedState === 'true'
+  })
+
+  // تحديد ما إذا كان المستخدم في صفحة إعدادات
+  const isInSettings = settingsNavigation.some(item => location.pathname === item.href)
 
   const handleLogout = () => {
     logout()
@@ -31,6 +43,12 @@ export default function Layout({ children }: LayoutProps) {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
+
+  const toggleSettings = () => {
+    const newState = !isSettingsOpen
+    setIsSettingsOpen(newState)
+    localStorage.setItem('settingsMenuOpen', String(newState))
   }
 
   return (
@@ -87,7 +105,8 @@ export default function Layout({ children }: LayoutProps) {
         <aside className="hidden lg:block w-64 min-h-screen border-l bg-card">
           <nav className="p-4">
             <ul className="space-y-2">
-              {navigation.map((item) => {
+              {/* القوائم الرئيسية */}
+              {mainNavigation.map((item) => {
                 const isActive = location.pathname === item.href
                 return (
                   <li key={item.href}>
@@ -105,6 +124,52 @@ export default function Layout({ children }: LayoutProps) {
                   </li>
                 )
               })}
+
+              {/* قسم الإعدادات */}
+              <li className="pt-2">
+                <button
+                  onClick={toggleSettings}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 ${
+                    isInSettings
+                      ? 'bg-primary/10 text-primary border-2 border-primary/20'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⚙️</span>
+                    <span>الإعدادات</span>
+                  </div>
+                  {isSettingsOpen ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* القوائم الفرعية للإعدادات */}
+                {isSettingsOpen && (
+                  <ul className="mt-2 space-y-1 pr-2">
+                    {settingsNavigation.map((item) => {
+                      const isActive = location.pathname === item.href
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            to={item.href}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              isActive
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            <span className="text-lg">{item.icon}</span>
+                            {item.name}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </li>
             </ul>
           </nav>
         </aside>
@@ -138,7 +203,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
           <nav className="p-4 max-h-[calc(100vh-100px)] overflow-y-auto">
             <ul className="space-y-3">
-              {navigation.map((item) => {
+              {/* القوائم الرئيسية */}
+              {mainNavigation.map((item) => {
                 const isActive = location.pathname === item.href
                 return (
                   <li key={item.href}>
@@ -157,6 +223,53 @@ export default function Layout({ children }: LayoutProps) {
                   </li>
                 )
               })}
+
+              {/* قسم الإعدادات */}
+              <li className="pt-2">
+                <button
+                  onClick={toggleSettings}
+                  className={`w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl text-base font-medium transition-all duration-200 min-h-[56px] ${
+                    isInSettings
+                      ? 'bg-primary/10 text-primary border-2 border-primary/20'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground active:bg-primary/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl flex-shrink-0">⚙️</span>
+                    <span className="flex-1 text-right">الإعدادات</span>
+                  </div>
+                  {isSettingsOpen ? (
+                    <ChevronUp className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
+                </button>
+
+                {/* القوائم الفرعية للإعدادات */}
+                {isSettingsOpen && (
+                  <ul className="mt-2 space-y-2 pr-4">
+                    {settingsNavigation.map((item) => {
+                      const isActive = location.pathname === item.href
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            to={item.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[52px] ${
+                              isActive
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground active:bg-primary/10'
+                            }`}
+                          >
+                            <span className="text-xl flex-shrink-0">{item.icon}</span>
+                            <span className="flex-1 text-right">{item.name}</span>
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </li>
             </ul>
           </nav>
         </aside>
