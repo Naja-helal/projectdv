@@ -42,12 +42,29 @@ interface FormData {
 export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
   const queryClient = useQueryClient()
   
-  // دالة لإزالة الأصفار البادئة من الأرقام
+  // دالة محسّنة لإزالة الأصفار البادئة - تعمل على الويب والموبايل
   const removeLeadingZeros = (value: string): string => {
     if (!value || value === '' || value === '0' || value === '0.') return value;
     // إزالة الأصفار البادئة مع الحفاظ على الأرقام العشرية
     const cleaned = value.replace(/^0+(?=\d)/, '');
     return cleaned || '0';
+  };
+
+  // دالة للتعامل مع الإدخال الفوري على الموبايل
+  const handleNumericInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const cursorPosition = input.selectionStart;
+    const oldValue = input.value;
+    const newValue = removeLeadingZeros(oldValue);
+    
+    if (newValue !== oldValue) {
+      input.value = newValue;
+      // الحفاظ على موضع المؤشر
+      if (cursorPosition !== null) {
+        const diff = oldValue.length - newValue.length;
+        input.setSelectionRange(cursorPosition - diff, cursorPosition - diff);
+      }
+    }
   };
   
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
