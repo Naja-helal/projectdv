@@ -27,6 +27,16 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
+// نسخ قاعدة البيانات الأولية في بيئة الإنتاج إذا لم تكن موجودة
+if (process.env.NODE_ENV === 'production' && !fs.existsSync(dbPath)) {
+  const sourceDb = path.join(__dirname, "../expenses-production.db");
+  if (fs.existsSync(sourceDb)) {
+    console.log(`📋 نسخ قاعدة البيانات الأولية من: ${sourceDb}`);
+    fs.copyFileSync(sourceDb, dbPath);
+    console.log(`✅ تم نسخ قاعدة البيانات إلى: ${dbPath}`);
+  }
+}
+
 const db = new Database(dbPath);
 
 // بيانات الأدمن الثابتة
