@@ -1,0 +1,37 @@
+# Netlify Configuration File
+[build]
+  # مجلد البناء
+  base = "web"
+  # أمر البناء
+  command = "npm run build"
+  # مجلد النشر
+  publish = "dist"
+
+# إعدادات المتغيرات البيئية
+[build.environment]
+  NODE_VERSION = "20"
+
+# إعادة توجيه جميع الطلبات إلى index.html (SPA)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# إعدادات الهيدرز للأمان
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# كاش للملفات الثابتة
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# إعدادات Functions للسيرفر (اختياري - إذا أردت استخدام Netlify Functions)
+[functions]
+  directory = "netlify/functions"
