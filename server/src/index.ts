@@ -408,37 +408,78 @@ app.post("/api/expenses", (req, res) => {
     const taxAmount = +(calculatedAmount * (taxRate / 100)).toFixed(2);
     const totalAmount = +(calculatedAmount + taxAmount).toFixed(2);
 
-    const stmt = db.prepare(`
-      INSERT INTO expenses
-        (category_id, project_id, project_item_id, vendor_id, 
-         quantity, unit_price, unit, amount, currency, 
-         tax_rate, tax_amount, total_amount,
-         date, payment_method, reference, invoice_number, 
-         description, details, notes, extra)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    // التحقق من وجود أعمدة description و details
+    const columns = db.pragma('table_info(expenses)');
+    const hasDescription = columns.some((col: any) => col.name === 'description');
+    const hasDetails = columns.some((col: any) => col.name === 'details');
+
+    let stmt, params;
     
-    const info = stmt.run(
-      categoryId,
-      projectId || null,
-      projectItemId || null,
-      vendorId || null,
-      quantity || 1,
-      unit_price || calculatedAmount,
-      unit || 'قطعة',
-      calculatedAmount, 
-      taxRate, 
-      taxAmount, 
-      totalAmount,
-      date, 
-      paymentMethod || null, 
-      reference || null,
-      invoiceNumber || null,
-      description || null,
-      details || null,
-      notes || null,
-      extra ? JSON.stringify(extra) : null
-    );
+    if (hasDescription && hasDetails) {
+      // قاعدة البيانات محدثة - استخدام الكود الكامل
+      stmt = db.prepare(`
+        INSERT INTO expenses
+          (category_id, project_id, project_item_id, vendor_id, 
+           quantity, unit_price, unit, amount, currency, 
+           tax_rate, tax_amount, total_amount,
+           date, payment_method, reference, invoice_number, 
+           description, details, notes, extra)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      params = [
+        categoryId,
+        projectId || null,
+        projectItemId || null,
+        vendorId || null,
+        quantity || 1,
+        unit_price || calculatedAmount,
+        unit || 'قطعة',
+        calculatedAmount, 
+        taxRate, 
+        taxAmount, 
+        totalAmount,
+        date, 
+        paymentMethod || null, 
+        reference || null,
+        invoiceNumber || null,
+        description || null,
+        details || null,
+        notes || null,
+        extra ? JSON.stringify(extra) : null
+      ];
+    } else {
+      // قاعدة البيانات قديمة - بدون description و details
+      stmt = db.prepare(`
+        INSERT INTO expenses
+          (category_id, project_id, project_item_id, vendor_id, 
+           quantity, unit_price, unit, amount, currency, 
+           tax_rate, tax_amount, total_amount,
+           date, payment_method, reference, invoice_number, 
+           notes, extra)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      params = [
+        categoryId,
+        projectId || null,
+        projectItemId || null,
+        vendorId || null,
+        quantity || 1,
+        unit_price || calculatedAmount,
+        unit || 'قطعة',
+        calculatedAmount, 
+        taxRate, 
+        taxAmount, 
+        totalAmount,
+        date, 
+        paymentMethod || null, 
+        reference || null,
+        invoiceNumber || null,
+        notes || null,
+        extra ? JSON.stringify(extra) : null
+      ];
+    }
+    
+    const info = stmt.run(...params);
 
     const expenseId = info.lastInsertRowid;
 
