@@ -182,6 +182,8 @@ export interface ExpenseFormData {
   paymentMethod?: string
   reference?: string
   invoiceNumber?: string
+  description?: string
+  details?: string
   notes?: string
   extra?: Record<string, any>
   customFields?: Record<string, string>
