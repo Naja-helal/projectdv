@@ -24,7 +24,6 @@ interface EditExpenseFormProps {
 
 export default function EditExpenseForm({ expense, open, onClose }: EditExpenseFormProps) {
   const queryClient = useQueryClient()
-  const [customFields, setCustomFields] = useState<Record<string, string>>({})
   
   // دالة لإزالة الأصفار البادئة من الأرقام
   const removeLeadingZeros = (value: string): string => {
@@ -55,16 +54,9 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       setValue('paymentMethod', expense.payment_method || '')
       setValue('reference', expense.reference || '')
       setValue('invoiceNumber', expense.invoice_number || '')
+      setValue('description', expense.description || '')
+      setValue('details', expense.details || '')
       setValue('notes', expense.notes || '')
-      
-      // الحقول المخصصة
-      if (expense.custom_fields) {
-        const customFieldsData: Record<string, string> = {}
-        Object.entries(expense.custom_fields).forEach(([key, field]) => {
-          customFieldsData[key] = field.value
-        })
-        setCustomFields(customFieldsData)
-      }
     }
   }, [expense, setValue])
 
@@ -83,7 +75,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
       reset()
-      setCustomFields({})
       onClose()
     },
     onError: (error) => {
@@ -101,17 +92,9 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       ...data,
       id: expense.id,
       date: dateValue,
-      customFields: Object.keys(customFields).length > 0 ? customFields : undefined
     }
     
     updateMutation.mutate(submitData)
-  }
-
-  const addCustomField = () => {
-    const fieldName = prompt('اسم الحقل المخصص:')
-    if (fieldName && !customFields[fieldName]) {
-      setCustomFields(prev => ({ ...prev, [fieldName]: '' }))
-    }
   }
 
   if (!expense) return null
@@ -128,6 +111,28 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-1">
           <div className="space-y-5">
+            {/* الوصف */}
+            <div className="space-y-3">
+              <Label htmlFor="description" className="text-base font-semibold">الوصف</Label>
+              <Input
+                {...register('description')}
+                type="text"
+                placeholder="وصف المصروف (مثل: شراء مواد بناء)"
+                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+              />
+            </div>
+
+            {/* التفاصيل */}
+            <div className="space-y-3">
+              <Label htmlFor="details" className="text-base font-semibold">التفاصيل</Label>
+              <Textarea
+                {...register('details')}
+                placeholder="تفاصيل إضافية عن المصروف..."
+                className="text-base p-4 border-2 rounded-xl min-h-[80px] focus:border-blue-500"
+                rows={3}
+              />
+            </div>
+
             {/* الفئة */}
             <div className="space-y-3">
               <Label htmlFor="categoryId" className="text-base font-semibold">الفئة *</Label>
@@ -265,49 +270,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
             />
           </div>
 
-          {/* الحقول المخصصة */}
-          {Object.keys(customFields).length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">الحقول المخصصة</Label>
-              {Object.entries(customFields).map(([fieldName, value]) => (
-                <div key={fieldName} className="flex gap-3">
-                  <Input
-                    placeholder={fieldName}
-                    value={value}
-                    onChange={(e) => setCustomFields(prev => ({
-                      ...prev,
-                      [fieldName]: e.target.value
-                    }))}
-                    className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    onClick={() => {
-                      setCustomFields(prev => {
-                        const { [fieldName]: _, ...rest } = prev
-                        return rest
-                      })
-                    }}
-                    className="min-h-[48px] px-4 shrink-0"
-                  >
-                    🗑️
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addCustomField}
-            className="w-full min-h-[48px] text-base font-semibold border-2 border-dashed hover:border-blue-500"
-          >
-            ➕ إضافة حقل مخصص
-          </Button>
-
           {/* ملخص المبالغ */}
           {amount && (
             <div className="bg-gradient-to-r from-blue-50 to-green-50 p-5 rounded-xl border-2 border-blue-100">
@@ -337,7 +299,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               variant="outline"
               onClick={() => {
                 reset()
-                setCustomFields({})
                 onClose()
               }}
               className="w-full sm:w-auto min-h-[48px] text-base font-semibold border-2 hover:bg-gray-50"

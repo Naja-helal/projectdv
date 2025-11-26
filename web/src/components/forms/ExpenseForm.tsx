@@ -34,12 +34,13 @@ interface FormData {
   paymentMethod: string
   reference: string
   invoiceNumber: string
+  description: string
+  details: string
   notes: string
   useQuantity: boolean // للتبديل بين نظام الكمية والمبلغ المباشر
 }
 
 export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
-  const [customFieldsData, setCustomFieldsData] = useState<Record<string, string>>({})
   const queryClient = useQueryClient()
   
   // دالة لإزالة الأصفار البادئة من الأرقام
@@ -64,6 +65,8 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
       paymentMethod: '',
       reference: '',
       invoiceNumber: '',
+      description: '',
+      details: '',
       notes: '',
       useQuantity: false,
     }
@@ -108,7 +111,6 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
       reset()
-      setCustomFieldsData({})
       onClose()
     },
     onError: (error) => {
@@ -130,8 +132,9 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
       paymentMethod: data.paymentMethod || undefined,
       reference: data.reference || undefined,
       invoiceNumber: data.invoiceNumber || undefined,
+      description: data.description || undefined,
+      details: data.details || undefined,
       notes: data.notes || undefined,
-      customFields: Object.keys(customFieldsData).length > 0 ? customFieldsData : undefined,
     }
 
     createMutation.mutate(expenseData)
@@ -165,6 +168,28 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-1">
           {/* الحقول الأساسية */}
           <div className="space-y-5">
+            {/* الوصف */}
+            <div className="space-y-3">
+              <Label htmlFor="description" className="text-base font-semibold">الوصف</Label>
+              <Input
+                {...register('description')}
+                type="text"
+                placeholder="وصف المصروف (مثل: شراء مواد بناء)"
+                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+              />
+            </div>
+
+            {/* التفاصيل */}
+            <div className="space-y-3">
+              <Label htmlFor="details" className="text-base font-semibold">التفاصيل</Label>
+              <Textarea
+                {...register('details')}
+                placeholder="تفاصيل إضافية عن المصروف..."
+                className="text-base p-4 border-2 rounded-xl min-h-[80px] focus:border-blue-500"
+                rows={3}
+              />
+            </div>
+
             {/* الفئة */}
             <div className="space-y-3">
               <Label htmlFor="categoryId" className="text-base font-semibold">الفئة *</Label>
@@ -478,7 +503,6 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
               variant="outline"
               onClick={() => {
                 reset()
-                setCustomFieldsData({})
                 onClose()
               }}
               className="w-full py-4 text-lg font-bold rounded-xl border-2 min-h-[56px]"

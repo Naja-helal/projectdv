@@ -243,45 +243,147 @@ export default function ProjectDetailsPage() {
             <p className="text-gray-600">لا توجد مصروفات مرتبطة بهذا المشروع</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">التاريخ</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">
-                    الوصف
-                  </th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">الفئة</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">العنصر</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">المبلغ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.expenses.map((expense: any) => (
-                  <tr key={expense.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm">
-                      {new Date(expense.date).toLocaleDateString('ar-SA')}
+          <>
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">التاريخ</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الوصف</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">التفاصيل</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الفئة</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">العنصر</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الكمية</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">طريقة الدفع</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">رقم الفاتورة</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">المبلغ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.expenses.map((expense: any) => (
+                    <tr key={expense.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 text-gray-600">
+                        {new Date(expense.date).toLocaleDateString('ar-SA')}
+                      </td>
+                      <td className="py-3 px-4 font-medium">
+                        {expense.description || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 max-w-xs">
+                        <div className="line-clamp-2" title={expense.details}>
+                          {expense.details || '-'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          className="text-xs"
+                          style={{ backgroundColor: expense.category_color || '#6b7280' }}
+                        >
+                          {expense.category_name}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {expense.item_name || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600 text-center">
+                        {expense.quantity ? `${expense.quantity} ${expense.unit || ''}` : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {expense.payment_method || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {expense.invoice_number || '-'}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-gray-900">
+                        {expense.amount.toLocaleString()} ر.س
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan={8} className="py-3 px-4 text-right font-bold text-gray-900">
+                      الإجمالي:
                     </td>
-                    <td className="py-3 px-4 text-sm">{expense.description}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 font-bold text-gray-900">
+                      {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="lg:hidden space-y-4">
+              {project.expenses.map((expense: any) => (
+                <div key={expense.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-900 mb-1">{expense.description || 'مصروف'}</h4>
+                      <p className="text-xs text-gray-600">
+                        {new Date(expense.date).toLocaleDateString('ar-SA')}
+                      </p>
+                    </div>
+                    <span className="text-lg font-bold text-green-600 whitespace-nowrap mr-2">
+                      {expense.amount.toLocaleString()} ر.س
+                    </span>
+                  </div>
+
+                  {expense.details && (
+                    <div className="bg-white bg-opacity-60 rounded p-2 mb-3">
+                      <p className="text-xs text-gray-600 line-clamp-2">{expense.details}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">الفئة</p>
                       <Badge
                         className="text-xs"
                         style={{ backgroundColor: expense.category_color || '#6b7280' }}
                       >
                         {expense.category_name}
                       </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
-                      {expense.item_name || '-'}
-                    </td>
-                    <td className="py-3 px-4 text-sm font-semibold">
-                      {expense.amount.toLocaleString()} ر.س
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">العنصر</p>
+                      <p className="text-sm font-medium text-gray-900">{expense.item_name || '-'}</p>
+                    </div>
+                    {expense.quantity && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-1">الكمية</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {expense.quantity} {expense.unit || ''}
+                        </p>
+                      </div>
+                    )}
+                    {expense.payment_method && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-1">طريقة الدفع</p>
+                        <p className="text-sm font-medium text-gray-900">{expense.payment_method}</p>
+                      </div>
+                    )}
+                    {expense.invoice_number && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-1">رقم الفاتورة</p>
+                        <p className="text-sm font-medium text-gray-900">{expense.invoice_number}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile Total */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-900">الإجمالي:</span>
+                  <span className="text-xl font-bold text-green-600">
+                    {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                  </span>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </Card>
     </div>

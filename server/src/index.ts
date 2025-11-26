@@ -361,7 +361,8 @@ app.post("/api/expenses", (req, res) => {
       categoryId, projectId, projectItemId, vendorId,
       quantity = 1, unit_price, unit = 'قطعة',
       amount, taxRate = 0, date,
-      paymentMethod, reference, invoiceNumber, notes, 
+      paymentMethod, reference, invoiceNumber, 
+      description, details, notes, 
       extra, customFields
     } = req.body;
 
@@ -387,8 +388,9 @@ app.post("/api/expenses", (req, res) => {
         (category_id, project_id, project_item_id, vendor_id, 
          quantity, unit_price, unit, amount, currency, 
          tax_rate, tax_amount, total_amount,
-         date, payment_method, reference, invoice_number, notes, extra)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         date, payment_method, reference, invoice_number, 
+         description, details, notes, extra)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const info = stmt.run(
@@ -407,6 +409,8 @@ app.post("/api/expenses", (req, res) => {
       paymentMethod || null, 
       reference || null,
       invoiceNumber || null,
+      description || null,
+      details || null,
       notes || null,
       extra ? JSON.stringify(extra) : null
     );
@@ -471,7 +475,8 @@ app.patch("/api/expenses/:id", (req, res) => {
       UPDATE expenses SET
         category_id=?, vendor_id=?,
         amount=?, currency='SAR', tax_rate=?, tax_amount=?, total_amount=?,
-        date=?, payment_method=?, reference=?, invoice_number=?, notes=?, extra=?,
+        date=?, payment_method=?, reference=?, invoice_number=?, 
+        description=?, details=?, notes=?, extra=?,
         updated_at=strftime('%s','now')
       WHERE id=?
     `);
@@ -487,6 +492,8 @@ app.patch("/api/expenses/:id", (req, res) => {
       data.paymentMethod || null, 
       data.reference || null,
       data.invoiceNumber || null,
+      data.description || null,
+      data.details || null,
       data.notes || null,
       data.extra ? JSON.stringify(data.extra) : null,
       id

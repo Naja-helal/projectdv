@@ -728,12 +728,14 @@ export default function StatisticsPage() {
 
       {/* إحصائيات أنواع المشاريع */}
       {projectTypesStats.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Layers className="h-5 w-5" />
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
             إحصائيات أنواع المشاريع
           </h3>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
@@ -783,17 +785,71 @@ export default function StatisticsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {projectTypesStats.map((type, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-bold text-gray-900">{type.name}</h4>
+                  <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded-full">
+                    {type.projectCount} مشروع
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">الميزانية</p>
+                    <p className="text-sm font-bold text-gray-900">{type.budget.toLocaleString()} ر.س</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">الإنفاق</p>
+                    <p className="text-sm font-bold text-gray-900">{type.actual.toLocaleString()} ر.س</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">المتبقي</p>
+                    <p className={`text-sm font-bold ${type.remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {type.remaining.toLocaleString()} ر.س
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">النسبة</p>
+                    <p className={`text-sm font-bold ${
+                      type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'text-red-600' :
+                      type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'text-orange-600' :
+                      'text-green-600'
+                    }`}>
+                      {type.budget > 0 ? ((type.actual / type.budget) * 100).toFixed(1) : 0}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'bg-red-600' :
+                      type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'bg-orange-600' :
+                      'bg-green-600'
+                    }`}
+                    style={{ width: `${Math.min(type.budget > 0 ? (type.actual / type.budget) * 100 : 0, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
       {/* إحصائيات عناصر المشاريع */}
       {projectItemsStats.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="h-5 w-5" />
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             أكثر عناصر المشاريع استخداماً
           </h3>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
@@ -833,6 +889,45 @@ export default function StatisticsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {projectItemsStats.slice(0, 10).map((item, idx) => (
+              <div key={idx} className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 border border-indigo-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-gray-900 text-sm">{item.name}</h4>
+                  <span className="text-xs bg-white px-2 py-1 rounded-full text-gray-600">
+                    #{idx + 1}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">الكمية</p>
+                    <p className="text-sm font-bold text-indigo-900">
+                      {item.count.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} {item.unit || ''}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">القيمة الإجمالية</p>
+                    <p className="text-sm font-bold text-indigo-900">{item.total.toLocaleString()} ر.س</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-indigo-600 h-2 rounded-full"
+                      style={{ width: `${totalActual > 0 ? (item.total / totalActual) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-indigo-900 min-w-[45px]">
+                    {totalActual > 0 ? ((item.total / totalActual) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -867,12 +962,14 @@ export default function StatisticsPage() {
 
       {/* الإحصائيات الشهرية */}
       {monthlyStats.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
             الإحصائيات الشهرية
           </h3>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
@@ -912,16 +1009,57 @@ export default function StatisticsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {monthlyStats.slice(0, 12).map((month, idx) => (
+              <div key={idx} className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-bold text-gray-900 text-sm">{month.month}</h4>
+                  <span className="text-xs bg-white px-2 py-1 rounded-full text-gray-600">
+                    {month.count} مصروف
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">إجمالي الإنفاق</p>
+                    <p className="text-sm font-bold text-purple-900">{month.total.toLocaleString()} ر.س</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">متوسط المصروف</p>
+                    <p className="text-sm font-bold text-purple-900">
+                      {(month.total / month.count).toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full"
+                      style={{ width: `${totalActual > 0 ? (month.total / totalActual) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-purple-900 min-w-[45px]">
+                    {totalActual > 0 ? ((month.total / totalActual) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
       {/* Project Details Table */}
-      <Card className="p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <FolderOpen className="h-5 w-5" />
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <FolderOpen className="h-4 w-4 sm:h-5 sm:w-5" />
           تفاصيل المشاريع
         </h3>
-        <div className="overflow-x-auto">
+        
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
@@ -1005,15 +1143,104 @@ export default function StatisticsPage() {
             </tfoot>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-4">
+          {projectDetailsData.map((project) => (
+            <div key={project.id} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-900 mb-1">{project.name}</h4>
+                  <p className="text-xs text-gray-600">كود: {project.code}</p>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                  project.status === 'completed' ? 'bg-green-100 text-green-800' :
+                  project.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                  project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {project.status === 'completed' ? 'مكتمل' :
+                   project.status === 'active' ? 'نشط' :
+                   project.status === 'on_hold' ? 'متوقف' : 'ملغي'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-white bg-opacity-60 rounded p-2">
+                  <p className="text-xs text-gray-600 mb-1">الميزانية</p>
+                  <p className="text-sm font-bold text-gray-900">{project.budget.toLocaleString()} ر.س</p>
+                </div>
+                <div className="bg-white bg-opacity-60 rounded p-2">
+                  <p className="text-xs text-gray-600 mb-1">الإنفاق الفعلي</p>
+                  <p className="text-sm font-bold text-gray-900">{project.actual.toLocaleString()} ر.س</p>
+                </div>
+                <div className="bg-white bg-opacity-60 rounded p-2">
+                  <p className="text-xs text-gray-600 mb-1">المتبقي</p>
+                  <p className={`text-sm font-bold ${project.remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {project.remaining.toLocaleString()} ر.س
+                  </p>
+                </div>
+                <div className="bg-white bg-opacity-60 rounded p-2">
+                  <p className="text-xs text-gray-600 mb-1">النسبة</p>
+                  <p className={`text-sm font-bold ${
+                    parseFloat(project.percentage) > 100 ? 'text-red-600' :
+                    parseFloat(project.percentage) > 80 ? 'text-orange-600' :
+                    'text-green-600'
+                  }`}>
+                    {project.percentage}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-600 bg-white bg-opacity-60 rounded p-2">
+                <span>عدد المصروفات: <strong className="text-gray-900">{project.expenseCount}</strong></span>
+                <span>المتوقع: <strong className="text-gray-900">{project.expected.toLocaleString()} ر.س</strong></span>
+              </div>
+            </div>
+          ))}
+
+          {/* Mobile Summary */}
+          <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg p-4 border-2 border-gray-300">
+            <h4 className="font-bold text-gray-900 mb-3 text-center">الإجمالي الكلي</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white rounded p-2">
+                <p className="text-xs text-gray-600 mb-1">الميزانية</p>
+                <p className="text-sm font-bold text-gray-900">{totalBudget.toLocaleString()} ر.س</p>
+              </div>
+              <div className="bg-white rounded p-2">
+                <p className="text-xs text-gray-600 mb-1">الإنفاق</p>
+                <p className="text-sm font-bold text-gray-900">{totalActual.toLocaleString()} ر.س</p>
+              </div>
+              <div className="bg-white rounded p-2">
+                <p className="text-xs text-gray-600 mb-1">المتبقي</p>
+                <p className={`text-sm font-bold ${totalBudget - totalActual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(totalBudget - totalActual).toLocaleString()} ر.س
+                </p>
+              </div>
+              <div className="bg-white rounded p-2">
+                <p className="text-xs text-gray-600 mb-1">النسبة</p>
+                <p className={`text-sm font-bold ${
+                  totalBudget > 0 && (totalActual / totalBudget) * 100 > 100 ? 'text-red-600' :
+                  totalBudget > 0 && (totalActual / totalBudget) * 100 > 80 ? 'text-orange-600' :
+                  'text-green-600'
+                }`}>
+                  {totalBudget > 0 ? ((totalActual / totalBudget) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {/* Category Summary Table */}
-      <Card className="p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <Package className="h-5 w-5" />
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Package className="h-4 w-4 sm:h-5 sm:w-5" />
           ملخص الفئات
         </h3>
-        <div className="overflow-x-auto">
+        
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
@@ -1049,15 +1276,49 @@ export default function StatisticsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          {categoryDetailsData.map((category) => (
+            <div key={category.id} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+              <h4 className="font-bold text-gray-900 mb-3">{category.name}</h4>
+              
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <p className="text-xs text-gray-600 mb-1">عدد المصروفات</p>
+                  <p className="text-sm font-bold text-blue-900">{category.count}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 mb-1">إجمالي المبلغ</p>
+                  <p className="text-sm font-bold text-blue-900">{category.total.toLocaleString()} ر.س</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{ width: `${totalActual > 0 ? (category.total / totalActual) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-blue-900 min-w-[45px]">
+                  {totalActual > 0 ? ((category.total / totalActual) * 100).toFixed(1) : 0}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </Card>
 
       {/* Detailed Expenses Table */}
-      <Card className="p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <FileText className="h-5 w-5" />
+      <Card className="p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
           تفاصيل المصروفات ({expensesDetailsData.length} مصروف)
         </h3>
-        <div className="overflow-x-auto">
+        
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
@@ -1095,6 +1356,50 @@ export default function StatisticsPage() {
           {expensesDetailsData.length > 50 && (
             <div className="mt-4 text-center text-gray-600 text-sm">
               عرض 50 من {expensesDetailsData.length} مصروف. استخدم التصدير CSV لعرض جميع البيانات.
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-3">
+          {expensesDetailsData.slice(0, 20).map((expense) => (
+            <div key={expense.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-900 text-sm mb-1">{expense.project}</h4>
+                  <p className="text-xs text-gray-600">{expense.category} • {expense.item}</p>
+                </div>
+                <span className="text-xs font-bold text-green-600 whitespace-nowrap mr-2">
+                  {expense.total.toLocaleString()} ر.س
+                </span>
+              </div>
+
+              <div className="bg-white bg-opacity-60 rounded p-2 mb-2">
+                <p className="text-xs text-gray-600 line-clamp-2">{expense.description || 'لا يوجد وصف'}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-gray-600 mb-1">التاريخ</p>
+                  <p className="font-medium text-gray-900">{expense.date}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600 mb-1">الكمية</p>
+                  <p className="font-medium text-gray-900">{expense.quantity}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600 mb-1">السعر</p>
+                  <p className="font-medium text-gray-900">{expense.amount.toLocaleString()} ر.س</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {expensesDetailsData.length > 20 && (
+            <div className="text-center py-3 text-sm text-gray-600 bg-gray-50 rounded-lg border border-gray-200">
+              عرض 20 من {expensesDetailsData.length} مصروف
+              <br />
+              <span className="text-xs">استخدم التصدير CSV لعرض جميع البيانات</span>
             </div>
           )}
         </div>
