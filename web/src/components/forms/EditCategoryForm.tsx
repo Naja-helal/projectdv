@@ -92,7 +92,7 @@ export default function EditCategoryForm({ category, open, onClose }: EditCatego
               <Input
                 {...register('name', { required: 'اسم الفئة مطلوب' })}
                 placeholder="مثال: اشتراكات مواقع/هوست"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
               />
               {errors.name && (
                 <span className="text-sm text-red-600 font-medium">{errors.name.message}</span>
@@ -104,7 +104,7 @@ export default function EditCategoryForm({ category, open, onClose }: EditCatego
               <Input
                 {...register('code')}
                 placeholder="مثال: hosting"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
               />
             </div>
 
@@ -114,7 +114,7 @@ export default function EditCategoryForm({ category, open, onClose }: EditCatego
                 {...register('description')}
                 placeholder="وصف مختصر للفئة..."
                 rows={3}
-                className="text-base p-4 border-2 rounded-xl resize-none focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[100px] resize-none focus:border-blue-500"
               />
             </div>
 

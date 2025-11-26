@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+﻿import { useForm } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import {
@@ -37,21 +37,21 @@ interface FormData {
   description: string
   details: string
   notes: string
-  useQuantity: boolean // للتبديل بين نظام الكمية والمبلغ المباشر
+  useQuantity: boolean // Ù„Ù„ØªØ¨Ø¯ÙŠÙ„ Ø¨ÙŠÙ† Ù†Ø¸Ø§Ù… Ø§Ù„ÙƒÙ…ÙŠØ© ÙˆØ§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¨Ø§Ø´Ø±
 }
 
 export default function EditExpenseForm({ expense, open, onClose }: EditExpenseFormProps) {
   const queryClient = useQueryClient()
   
-  // دالة محسّنة لإزالة الأصفار البادئة - تعمل على الويب والموبايل
+  // Ø¯Ø§Ù„Ø© Ù…Ø­Ø³Ù‘Ù†Ø© Ù„Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø£ØµÙØ§Ø± Ø§Ù„Ø¨Ø§Ø¯Ø¦Ø© - ØªØ¹Ù…Ù„ Ø¹Ù„Ù‰ Ø§Ù„ÙˆÙŠØ¨ ÙˆØ§Ù„Ù…ÙˆØ¨Ø§ÙŠÙ„
   const removeLeadingZeros = (value: string): string => {
     if (!value || value === '' || value === '0' || value === '0.') return value;
-    // إزالة الأصفار البادئة مع الحفاظ على الأرقام العشرية
+    // Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø£ØµÙØ§Ø± Ø§Ù„Ø¨Ø§Ø¯Ø¦Ø© Ù…Ø¹ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ø¹Ø´Ø±ÙŠØ©
     const cleaned = value.replace(/^0+(?=\d)/, '');
     return cleaned || '0';
   };
 
-  // دالة للتعامل مع الإدخال الفوري على الموبايل
+  // Ø¯Ø§Ù„Ø© Ù„Ù„ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„ÙÙˆØ±ÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ù…ÙˆØ¨Ø§ÙŠÙ„
   const handleNumericInput = (e: React.FormEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const cursorPosition = input.selectionStart;
@@ -60,7 +60,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     
     if (newValue !== oldValue) {
       input.value = newValue;
-      // الحفاظ على موضع المؤشر
+      // Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ù…ÙˆØ¶Ø¹ Ø§Ù„Ù…Ø¤Ø´Ø±
       if (cursorPosition !== null) {
         const diff = oldValue.length - newValue.length;
         input.setSelectionRange(cursorPosition - diff, cursorPosition - diff);
@@ -75,7 +75,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       projectItemId: '',
       quantity: '1',
       unit_price: '',
-      unit: 'قطعة',
+      unit: 'Ù‚Ø·Ø¹Ø©',
       amount: '',
       taxRate: '0',
       date: new Date().toISOString().split('T')[0],
@@ -89,7 +89,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     }
   })
 
-  // جلب البيانات المرجعية
+  // Ø¬Ù„Ø¨ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠØ©
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: categoryApi.getCategories
@@ -100,28 +100,28 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     queryFn: projectApi.getProjects
   })
 
-  // جلب جميع عناصر المشروع المستقلة
+  // Ø¬Ù„Ø¨ Ø¬Ù…ÙŠØ¹ Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ù…Ø³ØªÙ‚Ù„Ø©
   const { data: projectItems = [] } = useQuery({
     queryKey: ['project-items'],
     queryFn: projectItemApi.getProjectItems
   })
 
-  // جلب جميع طرق الدفع المستقلة
+  // Ø¬Ù„Ø¨ Ø¬Ù…ÙŠØ¹ Ø·Ø±Ù‚ Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ù…Ø³ØªÙ‚Ù„Ø©
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: paymentMethodApi.getPaymentMethods
   })
 
-  // مراقبة المشروع المختار
+  // Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ù…Ø®ØªØ§Ø±
   const selectedProjectId = watch('projectId')
 
-  // عند تغيير المشروع، إعادة تعيين العنصر
+  // Ø¹Ù†Ø¯ ØªØºÙŠÙŠØ± Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ØŒ Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø¹Ù†ØµØ±
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setValue('projectId', e.target.value)
     setValue('projectItemId', '')
   }
 
-  // تحميل بيانات المصروف عند فتح الفورم
+  // ØªØ­Ù…ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…ØµØ±ÙˆÙ Ø¹Ù†Ø¯ ÙØªØ­ Ø§Ù„ÙÙˆØ±Ù…
   useEffect(() => {
     if (expense && open) {
       setValue('categoryId', String(expense.category_id))
@@ -129,12 +129,12 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       setValue('projectItemId', expense.project_item_id ? String(expense.project_item_id) : '')
       setValue('quantity', expense.quantity ? String(expense.quantity) : '1')
       setValue('unit_price', expense.unit_price ? String(expense.unit_price) : '')
-      setValue('unit', expense.unit || 'قطعة')
+      setValue('unit', expense.unit || 'Ù‚Ø·Ø¹Ø©')
       setValue('amount', String(expense.amount))
       setValue('taxRate', String(expense.tax_rate || 0))
       setValue('useQuantity', !!(expense.quantity && expense.unit_price))
       
-      // تحويل التاريخ من timestamp إلى تنسيق date input
+      // ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØªØ§Ø±ÙŠØ® Ù…Ù† timestamp Ø¥Ù„Ù‰ ØªÙ†Ø³ÙŠÙ‚ date input
       const dateValue = typeof expense.date === 'number' 
         ? new Date(expense.date).toISOString().split('T')[0]
         : expense.date
@@ -149,7 +149,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     }
   }, [expense, open, setValue])
 
-  // mutation لتحديث المصروف
+  // mutation Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…ØµØ±ÙˆÙ
   const updateMutation = useMutation({
     mutationFn: (data: CreateExpenseData & { id: number }) => 
       expenseApi.updateExpense(data.id, data),
@@ -160,7 +160,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       onClose()
     },
     onError: (error) => {
-      console.error('خطأ في تحديث المصروف:', error)
+      console.error('Ø®Ø·Ø£ ÙÙŠ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…ØµØ±ÙˆÙ:', error)
     }
   })
 
@@ -195,7 +195,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
   const watchedAmount = watch('amount')
   const watchedTaxRate = watch('taxRate')
   
-  // حساب المبلغ والضريبة والإجمالي
+  // Ø­Ø³Ø§Ø¨ Ø§Ù„Ù…Ø¨Ù„Øº ÙˆØ§Ù„Ø¶Ø±ÙŠØ¨Ø© ÙˆØ§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ
   const calculatedAmount = useQuantityMode 
     ? (parseFloat(watchedQuantity) || 0) * (parseFloat(watchedUnitPrice) || 0)
     : (parseFloat(watchedAmount) || 0)
@@ -210,45 +210,45 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-lg max-h-[95vh] overflow-y-auto m-0 sm:m-6 rounded-none sm:rounded-lg">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl font-bold text-center">تحرير المصروف</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-center">ØªØ­Ø±ÙŠØ± Ø§Ù„Ù…ØµØ±ÙˆÙ</DialogTitle>
           <DialogDescription className="text-center text-gray-600">
-            تحديث تفاصيل المصروف
+            ØªØ­Ø¯ÙŠØ« ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ù…ØµØ±ÙˆÙ
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-1">
-          {/* الحقول الأساسية */}
+          {/* Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© */}
           <div className="space-y-5">
-            {/* الوصف */}
+            {/* Ø§Ù„ÙˆØµÙ */}
             <div className="space-y-3">
-              <Label htmlFor="description" className="text-base font-semibold">الوصف</Label>
+              <Label htmlFor="description" className="text-base font-semibold">Ø§Ù„ÙˆØµÙ</Label>
               <Input
                 {...register('description')}
                 type="text"
-                placeholder="وصف المصروف (مثل: شراء مواد بناء)"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                placeholder="ÙˆØµÙ Ø§Ù„Ù…ØµØ±ÙˆÙ (Ù…Ø«Ù„: Ø´Ø±Ø§Ø¡ Ù…ÙˆØ§Ø¯ Ø¨Ù†Ø§Ø¡)"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
               />
             </div>
 
-            {/* التفاصيل */}
+            {/* Ø§Ù„ØªÙØ§ØµÙŠÙ„ */}
             <div className="space-y-3">
-              <Label htmlFor="details" className="text-base font-semibold">التفاصيل</Label>
+              <Label htmlFor="details" className="text-base font-semibold">Ø§Ù„ØªÙØ§ØµÙŠÙ„</Label>
               <Textarea
                 {...register('details')}
-                placeholder="تفاصيل إضافية عن المصروف..."
+                placeholder="ØªÙØ§ØµÙŠÙ„ Ø¥Ø¶Ø§ÙÙŠØ© Ø¹Ù† Ø§Ù„Ù…ØµØ±ÙˆÙ..."
                 className="text-base p-4 border-2 rounded-xl min-h-[80px] focus:border-blue-500"
                 rows={3}
               />
             </div>
 
-            {/* الفئة */}
+            {/* Ø§Ù„ÙØ¦Ø© */}
             <div className="space-y-3">
-              <Label htmlFor="categoryId" className="text-base font-semibold">الفئة *</Label>
+              <Label htmlFor="categoryId" className="text-base font-semibold">Ø§Ù„ÙØ¦Ø© *</Label>
               <select
-                {...register('categoryId', { required: 'الفئة مطلوبة' })}
-                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                {...register('categoryId', { required: 'Ø§Ù„ÙØ¦Ø© Ù…Ø·Ù„ÙˆØ¨Ø©' })}
+                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
-                <option value="">اختر الفئة</option>
+                <option value="">Ø§Ø®ØªØ± Ø§Ù„ÙØ¦Ø©</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.icon} {category.name}
@@ -260,32 +260,32 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               )}
             </div>
 
-            {/* المشروع */}
+            {/* Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ */}
             <div className="space-y-3">
-              <Label htmlFor="projectId" className="text-base font-semibold">المشروع (اختياري)</Label>
+              <Label htmlFor="projectId" className="text-base font-semibold">Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)</Label>
               <select
                 {...register('projectId')}
                 onChange={handleProjectChange}
-                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
-                <option value="">بدون مشروع</option>
+                <option value="">Ø¨Ø¯ÙˆÙ† Ù…Ø´Ø±ÙˆØ¹</option>
                 {projects.filter(p => p.status === 'active').map((project) => (
                   <option key={project.id} value={project.id}>
-                    📁 {project.name} {project.code && `(${project.code})`}
+                    ðŸ“ {project.name} {project.code && `(${project.code})`}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* عنصر المشروع */}
+            {/* Ø¹Ù†ØµØ± Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ */}
             {selectedProjectId && projectItems.length > 0 && (
               <div className="space-y-3">
-                <Label htmlFor="projectItemId" className="text-base font-semibold">عنصر المشروع (اختياري)</Label>
+                <Label htmlFor="projectItemId" className="text-base font-semibold">Ø¹Ù†ØµØ± Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)</Label>
                 <select
                   {...register('projectItemId')}
-                  className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
-                  <option value="">بدون عنصر محدد</option>
+                  <option value="">Ø¨Ø¯ÙˆÙ† Ø¹Ù†ØµØ± Ù…Ø­Ø¯Ø¯</option>
                   {projectItems.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
@@ -295,7 +295,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               </div>
             )}
 
-            {/* التبديل بين نظام الكمية والمبلغ المباشر */}
+            {/* Ø§Ù„ØªØ¨Ø¯ÙŠÙ„ Ø¨ÙŠÙ† Ù†Ø¸Ø§Ù… Ø§Ù„ÙƒÙ…ÙŠØ© ÙˆØ§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¨Ø§Ø´Ø± */}
             <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
               <input
                 {...register('useQuantity')}
@@ -304,16 +304,16 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                 className="w-5 h-5 rounded border-gray-300"
               />
               <Label htmlFor="useQuantity" className="text-base font-semibold cursor-pointer">
-                استخدام نظام الكمية × سعر الوحدة
+                Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù†Ø¸Ø§Ù… Ø§Ù„ÙƒÙ…ÙŠØ© Ã— Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø©
               </Label>
             </div>
 
-            {/* نظام الكمية */}
+            {/* Ù†Ø¸Ø§Ù… Ø§Ù„ÙƒÙ…ÙŠØ© */}
             {useQuantityMode ? (
               <div className="grid grid-cols-3 gap-3 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-                {/* الكمية */}
+                {/* Ø§Ù„ÙƒÙ…ÙŠØ© */}
                 <div className="space-y-2">
-                  <Label htmlFor="quantity" className="text-sm font-semibold">الكمية *</Label>
+                  <Label htmlFor="quantity" className="text-sm font-semibold">Ø§Ù„ÙƒÙ…ÙŠØ© *</Label>
                   <Input
                     {...register('quantity', { 
                       required: useQuantityMode,
@@ -334,9 +334,9 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                   />
                 </div>
 
-                {/* سعر الوحدة */}
+                {/* Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø© */}
                 <div className="space-y-2">
-                  <Label htmlFor="unit_price" className="text-sm font-semibold">سعر الوحدة *</Label>
+                  <Label htmlFor="unit_price" className="text-sm font-semibold">Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø© *</Label>
                   <Input
                     {...register('unit_price', { 
                       required: useQuantityMode,
@@ -357,46 +357,46 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                   />
                 </div>
 
-                {/* الوحدة */}
+                {/* Ø§Ù„ÙˆØ­Ø¯Ø© */}
                 <div className="space-y-2">
-                  <Label htmlFor="unit" className="text-sm font-semibold">الوحدة</Label>
+                  <Label htmlFor="unit" className="text-sm font-semibold">Ø§Ù„ÙˆØ­Ø¯Ø©</Label>
                   <select
                     {...register('unit')}
                     className="w-full p-3 border-2 rounded-lg text-base"
                   >
-                    <option value="قطعة">قطعة</option>
-                    <option value="كيس">كيس</option>
-                    <option value="متر">متر</option>
-                    <option value="متر مربع">متر مربع</option>
-                    <option value="طن">طن</option>
-                    <option value="صندوق">صندوق</option>
-                    <option value="لتر">لتر</option>
-                    <option value="كيلو">كيلو</option>
-                    <option value="عبوة">عبوة</option>
+                    <option value="Ù‚Ø·Ø¹Ø©">Ù‚Ø·Ø¹Ø©</option>
+                    <option value="ÙƒÙŠØ³">ÙƒÙŠØ³</option>
+                    <option value="Ù…ØªØ±">Ù…ØªØ±</option>
+                    <option value="Ù…ØªØ± Ù…Ø±Ø¨Ø¹">Ù…ØªØ± Ù…Ø±Ø¨Ø¹</option>
+                    <option value="Ø·Ù†">Ø·Ù†</option>
+                    <option value="ØµÙ†Ø¯ÙˆÙ‚">ØµÙ†Ø¯ÙˆÙ‚</option>
+                    <option value="Ù„ØªØ±">Ù„ØªØ±</option>
+                    <option value="ÙƒÙŠÙ„Ùˆ">ÙƒÙŠÙ„Ùˆ</option>
+                    <option value="Ø¹Ø¨ÙˆØ©">Ø¹Ø¨ÙˆØ©</option>
                   </select>
                 </div>
 
-                {/* عرض المبلغ المحسوب */}
+                {/* Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø­Ø³ÙˆØ¨ */}
                 <div className="col-span-3 p-3 bg-white rounded-lg border-2 border-green-300">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-600">المبلغ قبل الضريبة:</span>
+                    <span className="text-sm font-semibold text-gray-600">Ø§Ù„Ù…Ø¨Ù„Øº Ù‚Ø¨Ù„ Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©:</span>
                     <span className="text-xl font-bold text-green-600">
-                      {calculatedAmount.toFixed(2)} ر.س
+                      {calculatedAmount.toFixed(2)} Ø±.Ø³
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    ({watchedQuantity || 0} × {watchedUnitPrice || 0})
+                    ({watchedQuantity || 0} Ã— {watchedUnitPrice || 0})
                   </div>
                 </div>
               </div>
             ) : (
-              /* المبلغ المباشر */
+              /* Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¨Ø§Ø´Ø± */
               <div className="space-y-3">
-                <Label htmlFor="amount" className="text-base font-semibold">المبلغ (ريال) *</Label>
+                <Label htmlFor="amount" className="text-base font-semibold">Ø§Ù„Ù…Ø¨Ù„Øº (Ø±ÙŠØ§Ù„) *</Label>
                 <Input
                   {...register('amount', { 
                     required: !useQuantityMode, 
-                    min: { value: 0.01, message: 'يجب أن يكون المبلغ أكبر من صفر' },
+                    min: { value: 0.01, message: 'ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø§Ù„Ù…Ø¨Ù„Øº Ø£ÙƒØ¨Ø± Ù…Ù† ØµÙØ±' },
                     onChange: (e) => {
                       e.target.value = removeLeadingZeros(e.target.value);
                     }
@@ -405,8 +405,8 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                   inputMode="decimal"
                   pattern="[0-9]*\.?[0-9]*"
                   step="0.01"
-                  placeholder="أدخل المبلغ"
-                  className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                  placeholder="Ø£Ø¯Ø®Ù„ Ø§Ù„Ù…Ø¨Ù„Øº"
+                  className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
                   onInput={handleNumericInput}
                   onBlur={(e) => {
                     e.target.value = removeLeadingZeros(e.target.value);
@@ -418,11 +418,11 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               </div>
             )}
 
-            {/* معدل الضريبة */}
+            {/* Ù…Ø¹Ø¯Ù„ Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="taxRate" className="text-base font-semibold">معدل الضريبة (%)</Label>
-                <span className="text-sm text-gray-500">اختياري</span>
+                <Label htmlFor="taxRate" className="text-base font-semibold">Ù…Ø¹Ø¯Ù„ Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© (%)</Label>
+                <span className="text-sm text-gray-500">Ø§Ø®ØªÙŠØ§Ø±ÙŠ</span>
               </div>
               <Input
                 {...register('taxRate', {
@@ -435,7 +435,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                 pattern="[0-9]*\.?[0-9]*"
                 step="0.01"
                 placeholder="15"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
                 onInput={handleNumericInput}
                 onBlur={(e) => {
                   e.target.value = removeLeadingZeros(e.target.value);
@@ -443,33 +443,33 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               />
               {taxAmount > 0 && (
                 <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <span className="text-sm font-medium text-gray-600">قيمة الضريبة:</span>
-                  <span className="text-lg font-bold text-yellow-700">{taxAmount.toFixed(2)} ر.س</span>
+                  <span className="text-sm font-medium text-gray-600">Ù‚ÙŠÙ…Ø© Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©:</span>
+                  <span className="text-lg font-bold text-yellow-700">{taxAmount.toFixed(2)} Ø±.Ø³</span>
                 </div>
               )}
             </div>
 
-            {/* الإجمالي النهائي */}
+            {/* Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ */}
             {totalAmount > 0 && (
               <div className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center text-white">
-                  <span className="text-lg font-bold">💰 الإجمالي النهائي:</span>
-                  <span className="text-2xl font-extrabold">{totalAmount.toFixed(2)} ر.س</span>
+                  <span className="text-lg font-bold">ðŸ’° Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ:</span>
+                  <span className="text-2xl font-extrabold">{totalAmount.toFixed(2)} Ø±.Ø³</span>
                 </div>
               </div>
             )}
 
-            {/* التاريخ */}
+            {/* Ø§Ù„ØªØ§Ø±ÙŠØ® */}
             <div className="space-y-3">
-              <Label htmlFor="date" className="text-base font-semibold">📅 التاريخ *</Label>
+              <Label htmlFor="date" className="text-base font-semibold">ðŸ“… Ø§Ù„ØªØ§Ø±ÙŠØ® *</Label>
               <div className="relative">
                 <Input
-                  {...register('date', { required: 'التاريخ مطلوب' })}
+                  {...register('date', { required: 'Ø§Ù„ØªØ§Ø±ÙŠØ® Ù…Ø·Ù„ÙˆØ¨' })}
                   type="date"
-                  className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500 bg-white [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500 bg-white [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   style={{
                     colorScheme: 'light',
-                    fontSize: '16px' // منع الزوم في iOS
+                    fontSize: '16px' // Ù…Ù†Ø¹ Ø§Ù„Ø²ÙˆÙ… ÙÙŠ iOS
                   }}
                 />
               </div>
@@ -478,14 +478,14 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               )}
             </div>
 
-            {/* طريقة الدفع */}
+            {/* Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹ */}
             <div className="space-y-3">
-              <Label htmlFor="paymentMethod" className="text-base font-semibold">💳 طريقة الدفع</Label>
+              <Label htmlFor="paymentMethod" className="text-base font-semibold">ðŸ’³ Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹</Label>
               <select
                 {...register('paymentMethod')}
-                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[56px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
-                <option value="">اختر طريقة الدفع</option>
+                <option value="">Ø§Ø®ØªØ± Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹</option>
                 {paymentMethods.map((method) => (
                   <option key={method.id} value={method.name}>
                     {method.icon} {method.name}
@@ -494,54 +494,54 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               </select>
             </div>
 
-            {/* المرجع */}
+            {/* Ø§Ù„Ù…Ø±Ø¬Ø¹ */}
             <div className="space-y-3">
-              <Label htmlFor="reference" className="text-base font-semibold">المرجع</Label>
+              <Label htmlFor="reference" className="text-base font-semibold">Ø§Ù„Ù…Ø±Ø¬Ø¹</Label>
               <Input
                 {...register('reference')}
-                placeholder="رقم المرجع أو الشيك"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                placeholder="Ø±Ù‚Ù… Ø§Ù„Ù…Ø±Ø¬Ø¹ Ø£Ùˆ Ø§Ù„Ø´ÙŠÙƒ"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
               />
             </div>
 
-            {/* رقم الفاتورة */}
+            {/* Ø±Ù‚Ù… Ø§Ù„ÙØ§ØªÙˆØ±Ø© */}
             <div className="space-y-3">
-              <Label htmlFor="invoiceNumber" className="text-base font-semibold">رقم الفاتورة</Label>
+              <Label htmlFor="invoiceNumber" className="text-base font-semibold">Ø±Ù‚Ù… Ø§Ù„ÙØ§ØªÙˆØ±Ø©</Label>
               <Input
                 {...register('invoiceNumber')}
-                placeholder="رقم الفاتورة"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
+                placeholder="Ø±Ù‚Ù… Ø§Ù„ÙØ§ØªÙˆØ±Ø©"
+                className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
               />
             </div>
 
-            {/* الملاحظات */}
+            {/* Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª */}
             <div className="space-y-3">
-              <Label htmlFor="notes" className="text-base font-semibold">الملاحظات</Label>
+              <Label htmlFor="notes" className="text-base font-semibold">Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª</Label>
               <Textarea
                 {...register('notes')}
-                placeholder="أي ملاحظات إضافية..."
+                placeholder="Ø£ÙŠ Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø¥Ø¶Ø§ÙÙŠØ©..."
                 rows={4}
                 className="text-base p-4 border-2 rounded-xl resize-none focus:border-blue-500"
               />
             </div>
           </div>
 
-          {/* ملخص الحساب */}
+          {/* Ù…Ù„Ø®Øµ Ø§Ù„Ø­Ø³Ø§Ø¨ */}
           {calculatedAmount > 0 && (
             <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-xl space-y-4">
-              <h4 className="font-bold text-lg text-blue-800 text-center">ملخص الحساب</h4>
+              <h4 className="font-bold text-lg text-blue-800 text-center">Ù…Ù„Ø®Øµ Ø§Ù„Ø­Ø³Ø§Ø¨</h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600 font-medium">المبلغ الأساسي:</span>
-                  <span className="font-bold text-lg">{calculatedAmount.toFixed(2)} ريال</span>
+                  <span className="text-gray-600 font-medium">Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ:</span>
+                  <span className="font-bold text-lg">{calculatedAmount.toFixed(2)} Ø±ÙŠØ§Ù„</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600 font-medium">الضريبة ({taxRate}%):</span>
-                  <span className="font-bold text-lg text-orange-600">{taxAmount.toFixed(2)} ريال</span>
+                  <span className="text-gray-600 font-medium">Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© ({taxRate}%):</span>
+                  <span className="font-bold text-lg text-orange-600">{taxAmount.toFixed(2)} Ø±ÙŠØ§Ù„</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-green-100 border-2 border-green-300 rounded-lg">
-                  <span className="text-green-800 font-bold">الإجمالي:</span>
-                  <span className="font-bold text-xl text-green-800">{totalAmount.toFixed(2)} ريال</span>
+                  <span className="text-green-800 font-bold">Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ:</span>
+                  <span className="font-bold text-xl text-green-800">{totalAmount.toFixed(2)} Ø±ÙŠØ§Ù„</span>
                 </div>
               </div>
             </div>
@@ -553,7 +553,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               disabled={updateMutation.isPending}
               className="w-full py-4 text-lg font-bold rounded-xl bg-blue-600 hover:bg-blue-700 min-h-[56px]"
             >
-              {updateMutation.isPending ? '⏳ جاري الحفظ...' : '✅ حفظ التعديلات'}
+              {updateMutation.isPending ? 'â³ Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø­ÙØ¸...' : 'âœ… Ø­ÙØ¸ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª'}
             </Button>
             <Button
               type="button"
@@ -564,7 +564,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               }}
               className="w-full py-4 text-lg font-bold rounded-xl border-2 min-h-[56px]"
             >
-              ❌ إلغاء
+              âŒ Ø¥Ù„ØºØ§Ø¡
             </Button>
           </div>
         </form>
@@ -572,3 +572,4 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     </Dialog>
   )
 }
+

@@ -90,6 +90,7 @@ export default function EditProjectTypeForm({ projectType, open, onClose }: Edit
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="مثال: إنشاءات"
               required
+              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -100,6 +101,7 @@ export default function EditProjectTypeForm({ projectType, open, onClose }: Edit
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               placeholder="مثال: CONST"
+              className="text-base p-4 border-2 rounded-xl min-h-[56px] focus:border-blue-500"
             />
           </div>
 
@@ -111,6 +113,7 @@ export default function EditProjectTypeForm({ projectType, open, onClose }: Edit
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="وصف نوع المشروع..."
               rows={3}
+              className="text-base p-4 border-2 rounded-xl min-h-[100px] resize-none focus:border-blue-500"
             />
           </div>
 
