@@ -15,11 +15,27 @@ interface ProjectFormProps {
 export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const queryClient = useQueryClient();
   
-  // دالة لإزالة الأصفار البادئة من الأرقام
+  // دالة محسّنة لإزالة الأصفار البادئة - تعمل على الويب والموبايل
   const removeLeadingZeros = (value: string): string => {
     if (!value || value === '' || value === '0' || value === '0.') return value;
     const cleaned = value.replace(/^0+(?=\d)/, '');
     return cleaned || '0';
+  };
+
+  // دالة للتعامل مع الإدخال الفوري على الموبايل
+  const handleNumericInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const cursorPosition = input.selectionStart;
+    const oldValue = input.value;
+    const newValue = removeLeadingZeros(oldValue);
+    
+    if (newValue !== oldValue) {
+      input.value = newValue;
+      if (cursorPosition !== null) {
+        const diff = oldValue.length - newValue.length;
+        input.setSelectionRange(cursorPosition - diff, cursorPosition - diff);
+      }
+    }
   };
   
   const [formData, setFormData] = useState<CreateProjectData>({
@@ -189,14 +205,15 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="budget" className="text-base font-semibold">قيمة العقد (ر.س)</Label>
             <Input
               id="budget"
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*\.?[0-9]*"
               value={formData.budget}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);
                 setFormData({ ...formData, budget: parseFloat(cleaned) || 0 });
               }}
+              onInput={handleNumericInput}
               onBlur={(e) => {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
@@ -211,14 +228,15 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="expected_spending" className="text-base font-semibold">الإنفاق المتوقع (ر.س)</Label>
             <Input
               id="expected_spending"
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*\.?[0-9]*"
               value={formData.expected_spending}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);
                 setFormData({ ...formData, expected_spending: parseFloat(cleaned) || 0 });
               }}
+              onInput={handleNumericInput}
               onBlur={(e) => {
                 e.target.value = removeLeadingZeros(e.target.value);
               }}
