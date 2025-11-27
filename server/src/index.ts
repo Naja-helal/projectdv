@@ -27,125 +27,20 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
+// نسخ قاعدة البيانات الأولية في بيئة الإنتاج إذا لم تكن موجودة
+if (process.env.NODE_ENV === 'production' && !fs.existsSync(dbPath)) {
+  const sourceDb = path.join(__dirname, "../expenses-production.db");
+  if (fs.existsSync(sourceDb)) {
+    console.log(`📋 نسخ قاعدة البيانات الأولية من: ${sourceDb}`);
+    fs.copyFileSync(sourceDb, dbPath);
+    console.log(`✅ تم نسخ قاعدة البيانات إلى: ${dbPath}`);
+  }
+}
+
 const db = new Database(dbPath);
-
-// إنشاء الجداول الأساسية إذا لم تكن موجودة
-db.exec(`
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    code TEXT,
-    description TEXT,
-    color TEXT DEFAULT '#3b82f6',
-    icon TEXT DEFAULT '📁',
-    is_active INTEGER DEFAULT 1,
-    sort_order INTEGER DEFAULT 0,
-    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-  );
-
-  CREATE TABLE IF NOT EXISTS payment_methods (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    is_active INTEGER DEFAULT 1,
-    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-  );
-
-  CREATE TABLE IF NOT EXISTS projects (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    code TEXT,
-    type TEXT DEFAULT 'استراتيجية',
-    description TEXT,
-    budget REAL DEFAULT 0,
-    expected_spending REAL DEFAULT 0,
-    start_date INTEGER,
-    end_date INTEGER,
-    status TEXT DEFAULT 'active',
-    color TEXT DEFAULT '#3b82f6',
-    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-  );
-
-  CREATE TABLE IF NOT EXISTS project_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    code TEXT,
-    description TEXT,
-    unit_price REAL DEFAULT 0,
-    quantity REAL DEFAULT 0,
-    total_price REAL DEFAULT 0,
-    sort_order INTEGER DEFAULT 0,
-    notes TEXT,
-    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER,
-    project_item_id INTEGER,
-    category_id INTEGER,
-    item_name TEXT NOT NULL,
-    quantity REAL DEFAULT 1,
-    unit_price REAL DEFAULT 0,
-    total_amount REAL DEFAULT 0,
-    payment_method TEXT,
-    payment_method_id INTEGER,
-    unit_id INTEGER,
-    description TEXT,
-    details TEXT,
-    date INTEGER,
-    expense_date INTEGER,
-    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-    FOREIGN KEY (project_item_id) REFERENCES project_items(id) ON DELETE SET NULL,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-    FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL,
-    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL
-  );
-`);
-
-console.log('✅ تم التأكد من وجود جميع الجداول الأساسية');
 
 // تحديث schema تلقائياً عند بدء التشغيل
 try {
-  // ===== فحص وإضافة الأعمدة الناقصة =====
-  
-  // فحص جدول categories
-  const categoryColumns = db.pragma('table_info(categories)') as Array<{ name: string }>;
-  if (!categoryColumns.some(col => col.name === 'code')) {
-    console.log('➕ إضافة عمود code إلى جدول categories...');
-    db.exec('ALTER TABLE categories ADD COLUMN code TEXT');
-  }
-  if (!categoryColumns.some(col => col.name === 'sort_order')) {
-    console.log('➕ إضافة عمود sort_order إلى جدول categories...');
-    db.exec('ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0');
-  }
-  
-  // فحص جدول project_items
-  const projectItemColumns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
-  if (!projectItemColumns.some(col => col.name === 'sort_order')) {
-    console.log('➕ إضافة عمود sort_order إلى جدول project_items...');
-    db.exec('ALTER TABLE project_items ADD COLUMN sort_order INTEGER DEFAULT 0');
-  }
-  
-  // فحص جدول expenses
-  const expenseColumns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
-  if (!expenseColumns.some(col => col.name === 'project_item_id')) {
-    console.log('➕ إضافة عمود project_item_id إلى جدول expenses...');
-    db.exec('ALTER TABLE expenses ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
-  }
-  if (!expenseColumns.some(col => col.name === 'date')) {
-    console.log('➕ إضافة عمود date إلى جدول expenses...');
-    db.exec('ALTER TABLE expenses ADD COLUMN date INTEGER');
-  }
-  
   // ===== فحص وإضافة جدول الوحدات =====
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='units'").all() as Array<{ name: string }>;
   const hasUnitsTable = tables.length > 0;
@@ -603,7 +498,7 @@ app.get("/api/expenses", (req, res) => {
         p.code AS project_code,
         p.color AS project_color,
         pi.name AS project_item_name,
-        e.total_amount
+        COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
       LEFT JOIN units u ON u.id = e.unit_id
@@ -651,6 +546,13 @@ app.get("/api/expenses", (req, res) => {
         }
       });
     }
+    
+    console.log(`\n📋 جلب ${rows.length} مصروف - أول مصروف:`, rows[0] ? {
+      id: rows[0].id,
+      description: rows[0].description,
+      payment_method_id: rows[0].payment_method_id,
+      payment_method: rows[0].payment_method
+    } : 'لا يوجد');
     
     res.json(rows);
   } catch (error) {
@@ -906,10 +808,10 @@ app.get("/api/projects", authenticateAdmin, (req, res) => {
     const rows = db.prepare(`
       SELECT 
         p.*,
-        COALESCE(SUM(e.total_amount), 0) as total_spent,
+        COALESCE(SUM(e.amount), 0) as total_spent,
         COUNT(e.id) as expense_count,
         CASE 
-          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.total_amount), 0) * 100.0 / p.budget), 2)
+          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.amount), 0) * 100.0 / p.budget), 2)
           ELSE 0 
         END as completion_percentage
       FROM projects p
@@ -932,10 +834,10 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
     const project = db.prepare(`
       SELECT 
         p.*,
-        COALESCE(SUM(e.total_amount), 0) as total_spent,
+        COALESCE(SUM(e.amount), 0) as total_spent,
         COUNT(e.id) as expense_count,
         CASE 
-          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.total_amount), 0) * 100.0 / p.budget), 2)
+          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.amount), 0) * 100.0 / p.budget), 2)
           ELSE 0 
         END as completion_percentage
       FROM projects p
@@ -963,7 +865,7 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
           c.name as category_name,
           c.color as category_color,
           pi.name as item_name,
-          e.total_amount
+          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
       `;
       
       if (hasPaymentMethods) {
@@ -1003,7 +905,7 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
           c.name as category_name,
           c.color as category_color,
           pi.name as item_name,
-          e.total_amount
+          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
         FROM expenses e
         LEFT JOIN categories c ON e.category_id = c.id
         LEFT JOIN project_items pi ON e.project_item_id = pi.id
@@ -1192,21 +1094,33 @@ app.delete("/api/projects/:id", authenticateAdmin, (req, res) => {
     }
     
     // إزالة ارتباط المصروفات بالمشروع
-    db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
+    try {
+      const expensesResult = db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
+      console.log(`✅ تم تحديث ${expensesResult.changes} مصروف`);
+    } catch (expensesError) {
+      console.log('⚠️ خطأ في تحديث المصروفات:', expensesError);
+    }
     
     // حذف المشروع
     const result = db.prepare("DELETE FROM projects WHERE id = ?").run(id);
+    console.log(`✅ نتيجة حذف المشروع: ${result.changes} صف محذوف`);
     
     if (result.changes === 0) {
+      console.log('❌ المشروع غير موجود');
       return res.status(404).json({ error: "المشروع غير موجود" });
     }
     
+    console.log('🎉 تم حذف المشروع بنجاح');
     res.json({ ok: true, success: true });
   } catch (error: any) {
-    console.error("خطأ في حذف المشروع:", error.message);
+    console.error("❌ خطأ في حذف المشروع:");
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error code:", error.code);
+    console.error("❌ Full error:", error);
     res.status(500).json({ 
       error: "خطأ في حذف المشروع",
-      details: error.message
+      details: error.message,
+      code: error.code
     });
   }
 });
@@ -1223,7 +1137,7 @@ app.get("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
     const items = db.prepare(`
       SELECT 
         pi.*,
-        COALESCE(SUM(e.total_amount), 0) as total_spent
+        COALESCE(SUM(e.amount), 0) as total_spent
       FROM project_items pi
       LEFT JOIN expenses e ON e.project_item_id = pi.id
       WHERE pi.project_id = ?
@@ -1353,7 +1267,7 @@ app.get("/api/projects/stats/summary", authenticateAdmin, (req, res) => {
         ROUND((COALESCE(SUM(spent.total), 0) * 100.0 / NULLIF(SUM(budget), 0)), 2) as overall_completion
       FROM projects
       LEFT JOIN (
-        SELECT project_id, SUM(total_amount) as total
+        SELECT project_id, SUM(amount) as total
         FROM expenses
         WHERE project_id IS NOT NULL
         GROUP BY project_id
@@ -1464,9 +1378,9 @@ app.get("/api/stats", authenticateAdmin, (req, res) => {
     const total = db.prepare(`
       SELECT 
         COUNT(*) as count,
-        COALESCE(SUM(total_amount), 0) as total,
-        COALESCE(SUM(total_amount), 0) as subtotal,
-        0 as tax
+        COALESCE(SUM(amount), 0) as total,
+        COALESCE(SUM(amount), 0) as subtotal,
+        COALESCE(SUM(tax_amount), 0) as tax
       FROM expenses ${whereClause}
     `).get(...params);
     
@@ -1475,7 +1389,7 @@ app.get("/api/stats", authenticateAdmin, (req, res) => {
       SELECT 
         c.name, c.color, c.icon,
         COUNT(*) as count,
-        COALESCE(SUM(e.total_amount), 0) as total
+        COALESCE(SUM(e.amount), 0) as total
       FROM expenses e
       JOIN categories c ON c.id = e.category_id
       ${whereClause}
@@ -1743,7 +1657,14 @@ app.get("/api/payment-methods/:id", authenticateAdmin, (req, res) => {
 // إضافة طريقة دفع جديدة
 app.post("/api/payment-methods", authenticateAdmin, (req, res) => {
   try {
+    console.log("\n🔵 POST /api/payment-methods - البيانات المستلمة:", req.body);
+    
     const { name, code, description, color, icon } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: "الاسم مطلوب" });
+    }
+    
     const now = Date.now();
 
     const result = db.prepare(`
@@ -1751,13 +1672,16 @@ app.post("/api/payment-methods", authenticateAdmin, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(name, code || null, description || null, color || '#10b981', icon || '💳', now, now);
 
+    console.log("✅ تم إضافة طريقة الدفع برقم:", result.lastInsertRowid);
+
     res.json({ 
       id: result.lastInsertRowid, 
       message: "تم إضافة طريقة الدفع بنجاح" 
     });
-  } catch (error) {
-    console.error("خطأ في إضافة طريقة الدفع:", error);
-    res.status(500).json({ error: "خطأ في إضافة طريقة الدفع" });
+  } catch (error: any) {
+    console.error("❌ خطأ في إضافة طريقة الدفع:", error);
+    console.error("تفاصيل الخطأ:", error.message);
+    res.status(500).json({ error: "خطأ في إضافة طريقة الدفع: " + error.message });
   }
 });
 
