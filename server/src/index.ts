@@ -27,16 +27,6 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
-// نسخ قاعدة البيانات الأولية في بيئة الإنتاج إذا لم تكن موجودة
-if (process.env.NODE_ENV === 'production' && !fs.existsSync(dbPath)) {
-  const sourceDb = path.join(__dirname, "../expenses-production.db");
-  if (fs.existsSync(sourceDb)) {
-    console.log(`📋 نسخ قاعدة البيانات الأولية من: ${sourceDb}`);
-    fs.copyFileSync(sourceDb, dbPath);
-    console.log(`✅ تم نسخ قاعدة البيانات إلى: ${dbPath}`);
-  }
-}
-
 const db = new Database(dbPath);
 
 // تحديث schema تلقائياً عند بدء التشغيل
@@ -1087,33 +1077,21 @@ app.delete("/api/projects/:id", authenticateAdmin, (req, res) => {
     }
     
     // إزالة ارتباط المصروفات بالمشروع
-    try {
-      const expensesResult = db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
-      console.log(`✅ تم تحديث ${expensesResult.changes} مصروف`);
-    } catch (expensesError) {
-      console.log('⚠️ خطأ في تحديث المصروفات:', expensesError);
-    }
+    db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
     
     // حذف المشروع
     const result = db.prepare("DELETE FROM projects WHERE id = ?").run(id);
-    console.log(`✅ نتيجة حذف المشروع: ${result.changes} صف محذوف`);
     
     if (result.changes === 0) {
-      console.log('❌ المشروع غير موجود');
       return res.status(404).json({ error: "المشروع غير موجود" });
     }
     
-    console.log('🎉 تم حذف المشروع بنجاح');
     res.json({ ok: true, success: true });
   } catch (error: any) {
-    console.error("❌ خطأ في حذف المشروع:");
-    console.error("❌ Error message:", error.message);
-    console.error("❌ Error code:", error.code);
-    console.error("❌ Full error:", error);
+    console.error("خطأ في حذف المشروع:", error.message);
     res.status(500).json({ 
       error: "خطأ في حذف المشروع",
-      details: error.message,
-      code: error.code
+      details: error.message
     });
   }
 });
