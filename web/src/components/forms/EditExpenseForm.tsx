@@ -32,8 +32,6 @@ interface FormData {
   taxRate: string
   date: string
   paymentMethod: string
-  reference: string
-  invoiceNumber: string
   description: string
   details: string
   notes: string
@@ -63,8 +61,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       taxRate: '0',
       date: new Date().toISOString().split('T')[0],
       paymentMethod: '',
-      reference: '',
-      invoiceNumber: '',
       description: '',
       details: '',
       notes: '',
@@ -124,8 +120,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       setValue('date', dateValue)
       
       setValue('paymentMethod', expense.payment_method || '')
-      setValue('reference', expense.reference || '')
-      setValue('invoiceNumber', expense.invoice_number || '')
       setValue('description', expense.description || '')
       setValue('details', expense.details || '')
       setValue('notes', expense.notes || '')
@@ -162,8 +156,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       taxRate: parseFloat(data.taxRate),
       date: new Date(data.date).getTime(),
       paymentMethod: data.paymentMethod || undefined,
-      reference: data.reference || undefined,
-      invoiceNumber: data.invoiceNumber || undefined,
       description: data.description || undefined,
       details: data.details || undefined,
       notes: data.notes || undefined,
@@ -488,26 +480,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* المرجع */}
-            <div className="space-y-3">
-              <Label htmlFor="reference" className="text-base font-semibold">المرجع</Label>
-              <Input
-                {...register('reference')}
-                placeholder="رقم المرجع أو الشيك"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
-              />
-            </div>
-
-            {/* رقم الفاتورة */}
-            <div className="space-y-3">
-              <Label htmlFor="invoiceNumber" className="text-base font-semibold">رقم الفاتورة</Label>
-              <Input
-                {...register('invoiceNumber')}
-                placeholder="رقم الفاتورة"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
-              />
             </div>
 
             {/* الملاحظات */}

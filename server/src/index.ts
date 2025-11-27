@@ -311,7 +311,7 @@ app.get("/api/expenses", (req, res) => {
       params.push(+vendorId); 
     }
     if (q) { 
-      where.push("(e.reference LIKE ? OR e.notes LIKE ? OR e.invoice_number LIKE ?)"); 
+      where.push("(e.description LIKE ? OR e.notes LIKE ? OR e.details LIKE ?)"); 
       params.push(`%${q}%`, `%${q}%`, `%${q}%`); 
     }
 
@@ -386,7 +386,7 @@ app.post("/api/expenses", (req, res) => {
       categoryId, projectId, projectItemId, vendorId,
       quantity = 1, unit_price, unit = 'قطعة',
       amount, taxRate = 0, date,
-      paymentMethod, reference, invoiceNumber, 
+      paymentMethod, 
       description, details, notes, 
       extra, customFields
     } = req.body;
@@ -422,9 +422,9 @@ app.post("/api/expenses", (req, res) => {
           (category_id, project_id, project_item_id, vendor_id, 
            quantity, unit_price, unit, amount, currency, 
            tax_rate, tax_amount, total_amount,
-           date, payment_method, reference, invoice_number, 
+           date, payment_method, 
            description, details, notes, extra)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
@@ -440,8 +440,6 @@ app.post("/api/expenses", (req, res) => {
         totalAmount,
         date, 
         paymentMethod || null, 
-        reference || null,
-        invoiceNumber || null,
         description || null,
         details || null,
         notes || null,
@@ -454,9 +452,9 @@ app.post("/api/expenses", (req, res) => {
           (category_id, project_id, project_item_id, vendor_id, 
            quantity, unit_price, unit, amount, currency, 
            tax_rate, tax_amount, total_amount,
-           date, payment_method, reference, invoice_number, 
+           date, payment_method, 
            notes, extra)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
@@ -472,8 +470,6 @@ app.post("/api/expenses", (req, res) => {
         totalAmount,
         date, 
         paymentMethod || null, 
-        reference || null,
-        invoiceNumber || null,
         notes || null,
         extra ? JSON.stringify(extra) : null
       ];
@@ -541,7 +537,7 @@ app.patch("/api/expenses/:id", (req, res) => {
       UPDATE expenses SET
         category_id=?, vendor_id=?,
         amount=?, currency='SAR', tax_rate=?, tax_amount=?, total_amount=?,
-        date=?, payment_method=?, reference=?, invoice_number=?, 
+        date=?, payment_method=?, 
         description=?, details=?, notes=?, extra=?,
         updated_at=strftime('%s','now')
       WHERE id=?
@@ -556,8 +552,6 @@ app.patch("/api/expenses/:id", (req, res) => {
       totalAmount,
       dateValue, 
       data.paymentMethod || null, 
-      data.reference || null,
-      data.invoiceNumber || null,
       data.description || null,
       data.details || null,
       data.notes || null,

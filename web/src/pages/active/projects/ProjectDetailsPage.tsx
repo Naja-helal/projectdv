@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { projectApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,11 +13,19 @@ import {
   FileText,
   AlertCircle,
   CheckCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
+
+type SortField = 'date' | 'description' | 'category' | 'amount' | 'quantity';
+type SortDirection = 'asc' | 'desc';
 
 export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, isError } = useQuery({
@@ -38,6 +47,59 @@ export default function ProjectDetailsPage() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // دالة الترتيب
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // المصروفات المرتبة
+  const sortedExpenses = useMemo(() => {
+    if (!project?.expenses) return [];
+    
+    const expenses = [...project.expenses];
+    
+    expenses.sort((a: any, b: any) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'date':
+          comparison = a.date - b.date;
+          break;
+        case 'description':
+          comparison = (a.description || '').localeCompare(b.description || '', 'ar');
+          break;
+        case 'category':
+          comparison = (a.category_name || '').localeCompare(b.category_name || '', 'ar');
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        case 'quantity':
+          comparison = (a.quantity || 0) - (b.quantity || 0);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    
+    return expenses;
+  }, [project?.expenses, sortField, sortDirection]);
+
+  // أيقونة الترتيب
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-4 h-4" />
+      : <ArrowDown className="w-4 h-4" />;
   };
 
   if (isLoading) {
@@ -245,68 +307,106 @@ export default function ProjectDetailsPage() {
         ) : (
           <>
             {/* Desktop Table */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto shadow-lg rounded-xl border border-gray-200">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">التاريخ</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الوصف</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">التفاصيل</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الفئة</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">العنصر</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">الكمية</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">طريقة الدفع</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">رقم الفاتورة</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">المبلغ</th>
+                  <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('date')}
+                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+                      >
+                        📅 التاريخ
+                        <SortIcon field="date" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('description')}
+                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+                      >
+                        📝 الوصف
+                        <SortIcon field="description" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">📋 التفاصيل</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('category')}
+                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+                      >
+                        🏷️ الفئة
+                        <SortIcon field="category" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">📦 العنصر</th>
+                    <th className="text-center py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('quantity')}
+                        className="flex items-center gap-2 mx-auto hover:text-blue-600 transition-colors"
+                      >
+                        🔢 الكمية
+                        <SortIcon field="quantity" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">💳 الدفع</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('amount')}
+                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+                      >
+                        💰 المبلغ
+                        <SortIcon field="amount" />
+                      </button>
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {project.expenses.map((expense: any) => (
-                    <tr key={expense.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 text-gray-600">
+                <tbody className="divide-y divide-gray-100">
+                  {sortedExpenses.map((expense: any) => (
+                    <tr key={expense.id} className="hover:bg-blue-50 transition-colors duration-150">
+                      <td className="py-4 px-4 text-gray-700 font-medium">
                         {new Date(expense.date).toLocaleDateString('ar-SA')}
                       </td>
-                      <td className="py-3 px-4 font-medium">
+                      <td className="py-4 px-4 font-semibold text-gray-900">
                         {expense.description || '-'}
                       </td>
-                      <td className="py-3 px-4 text-gray-600 max-w-xs">
-                        <div className="line-clamp-2" title={expense.details}>
+                      <td className="py-4 px-4 text-gray-600 max-w-xs">
+                        <div className="line-clamp-2 text-sm" title={expense.details}>
                           {expense.details || '-'}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-4 px-4">
                         <Badge
-                          className="text-xs"
+                          className="text-xs font-semibold px-3 py-1"
                           style={{ backgroundColor: expense.category_color || '#6b7280' }}
                         >
                           {expense.category_name}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-gray-600">
+                      <td className="py-4 px-4 text-gray-700">
                         {expense.item_name || '-'}
                       </td>
-                      <td className="py-3 px-4 text-gray-600 text-center">
+                      <td className="py-4 px-4 text-gray-700 text-center font-medium">
                         {expense.quantity ? `${expense.quantity} ${expense.unit || ''}` : '-'}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">
+                      <td className="py-4 px-4 text-gray-700">
                         {expense.payment_method || '-'}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {expense.invoice_number || '-'}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-gray-900">
+                      <td className="py-4 px-4 font-bold text-lg text-green-700">
                         {expense.amount.toLocaleString()} ر.س
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td colSpan={8} className="py-3 px-4 text-right font-bold text-gray-900">
-                      الإجمالي:
+                <tfoot className="bg-gradient-to-r from-green-50 to-green-100">
+                  <tr className="border-t-2 border-green-300">
+                    <td colSpan={7} className="py-4 px-4 text-right">
+                      <span className="text-lg font-bold text-gray-900">💰 الإجمالي:</span>
                     </td>
-                    <td className="py-3 px-4 font-bold text-gray-900">
-                      {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                    <td className="py-4 px-4">
+                      <span className="text-xl font-extrabold text-green-700">
+                        {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                      </span>
                     </td>
                   </tr>
                 </tfoot>
@@ -315,58 +415,61 @@ export default function ProjectDetailsPage() {
 
             {/* Mobile Cards */}
             <div className="lg:hidden space-y-4">
-              {project.expenses.map((expense: any) => (
-                <div key={expense.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
-                  <div className="flex items-start justify-between mb-3">
+              {sortedExpenses.map((expense: any) => (
+                <div key={expense.id} className="bg-white rounded-xl p-5 shadow-md border-r-4 border-blue-500 hover:shadow-lg transition-shadow duration-200">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-100">
                     <div className="flex-1">
-                      <h4 className="font-bold text-gray-900 mb-1">{expense.description || 'مصروف'}</h4>
-                      <p className="text-xs text-gray-600">
-                        {new Date(expense.date).toLocaleDateString('ar-SA')}
+                      <h4 className="font-bold text-gray-900 text-lg mb-1">
+                        {expense.description || 'مصروف'}
+                      </h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        📅 {new Date(expense.date).toLocaleDateString('ar-SA')}
                       </p>
                     </div>
-                    <span className="text-lg font-bold text-green-600 whitespace-nowrap mr-2">
-                      {expense.amount.toLocaleString()} ر.س
-                    </span>
+                    <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg px-4 py-2 mr-2">
+                      <span className="text-xl font-extrabold text-green-700 whitespace-nowrap">
+                        {expense.amount.toLocaleString()} ر.س
+                      </span>
+                    </div>
                   </div>
 
+                  {/* Details */}
                   {expense.details && (
-                    <div className="bg-white bg-opacity-60 rounded p-2 mb-3">
-                      <p className="text-xs text-gray-600 line-clamp-2">{expense.details}</p>
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                      <p className="text-sm text-gray-700 leading-relaxed">{expense.details}</p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">الفئة</p>
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2 font-medium">🏷️ الفئة</p>
                       <Badge
-                        className="text-xs"
+                        className="text-xs font-semibold px-3 py-1.5"
                         style={{ backgroundColor: expense.category_color || '#6b7280' }}
                       >
                         {expense.category_name}
                       </Badge>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-600 mb-1">العنصر</p>
-                      <p className="text-sm font-medium text-gray-900">{expense.item_name || '-'}</p>
-                    </div>
+                    {expense.item_name && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2 font-medium">📦 العنصر</p>
+                        <p className="text-sm font-semibold text-gray-900">{expense.item_name}</p>
+                      </div>
+                    )}
                     {expense.quantity && (
-                      <div>
-                        <p className="text-xs text-gray-600 mb-1">الكمية</p>
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2 font-medium">🔢 الكمية</p>
+                        <p className="text-sm font-semibold text-gray-900">
                           {expense.quantity} {expense.unit || ''}
                         </p>
                       </div>
                     )}
                     {expense.payment_method && (
-                      <div>
-                        <p className="text-xs text-gray-600 mb-1">طريقة الدفع</p>
-                        <p className="text-sm font-medium text-gray-900">{expense.payment_method}</p>
-                      </div>
-                    )}
-                    {expense.invoice_number && (
-                      <div>
-                        <p className="text-xs text-gray-600 mb-1">رقم الفاتورة</p>
-                        <p className="text-sm font-medium text-gray-900">{expense.invoice_number}</p>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2 font-medium">💳 طريقة الدفع</p>
+                        <p className="text-sm font-semibold text-gray-900">{expense.payment_method}</p>
                       </div>
                     )}
                   </div>
@@ -374,10 +477,12 @@ export default function ProjectDetailsPage() {
               ))}
 
               {/* Mobile Total */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200">
+              <div className="bg-gradient-to-br from-green-50 via-green-100 to-emerald-100 rounded-xl p-5 border-2 border-green-400 shadow-lg">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-900">الإجمالي:</span>
-                  <span className="text-xl font-bold text-green-600">
+                  <span className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    💰 الإجمالي:
+                  </span>
+                  <span className="text-2xl font-extrabold text-green-700">
                     {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
                   </span>
                 </div>

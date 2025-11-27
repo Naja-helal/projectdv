@@ -99,8 +99,6 @@ export interface Expense {
   total_amount: number
   date: number
   payment_method?: string
-  reference?: string
-  invoice_number?: string
   description?: string
   details?: string
   notes?: string
@@ -158,8 +156,6 @@ export interface CreateExpenseData {
   taxRate?: number
   date: number
   paymentMethod?: string
-  reference?: string
-  invoiceNumber?: string
   description?: string
   details?: string
   notes?: string
@@ -180,8 +176,6 @@ export interface ExpenseFormData {
   taxRate?: number
   date: string // للنموذج HTML
   paymentMethod?: string
-  reference?: string
-  invoiceNumber?: string
   description?: string
   details?: string
   notes?: string
