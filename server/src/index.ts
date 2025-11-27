@@ -27,6 +27,14 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
+// نسخ قاعدة البيانات مؤقتاً لمرة واحدة فقط (سيتم إزالة هذا الكود)
+const productionDbPath = path.join(__dirname, "../expenses-production.db");
+if (fs.existsSync(productionDbPath) && !fs.existsSync(dbPath)) {
+  console.log('📦 نسخ قاعدة البيانات من الملف الاحتياطي...');
+  fs.copyFileSync(productionDbPath, dbPath);
+  console.log('✅ تم نسخ قاعدة البيانات بنجاح');
+}
+
 const db = new Database(dbPath);
 
 // تحديث schema تلقائياً عند بدء التشغيل
