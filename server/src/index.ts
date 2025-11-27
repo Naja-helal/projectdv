@@ -1286,6 +1286,9 @@ app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
     const id = +req.params.id;
     console.log("\n🗑️ DELETE /api/project-items/:id - حذف تصنيف المشروع رقم:", id);
     
+    // تعطيل foreign keys مؤقتاً
+    db.exec('PRAGMA foreign_keys = OFF');
+    
     // إزالة ارتباط المصروفات بالعنصر
     const updateResult = db.prepare("UPDATE expenses SET project_item_id = NULL WHERE project_item_id = ?").run(id);
     console.log("📊 تم تحديث", updateResult.changes, "مصروف مرتبط");
@@ -1293,6 +1296,9 @@ app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
     // حذف العنصر
     const result = db.prepare("DELETE FROM project_items WHERE id = ?").run(id);
     console.log("✅ عدد الصفوف المحذوفة:", result.changes);
+    
+    // إعادة تفعيل foreign keys
+    db.exec('PRAGMA foreign_keys = ON');
     
     if (result.changes === 0) {
       console.log("⚠️ تصنيف المشروع غير موجود");
@@ -1302,6 +1308,8 @@ app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
     console.log("✅ تم حذف تصنيف المشروع بنجاح");
     res.json({ ok: true, success: true });
   } catch (error: any) {
+    // إعادة تفعيل foreign keys في حالة الخطأ
+    db.exec('PRAGMA foreign_keys = ON');
     console.error("❌ خطأ في حذف تصنيف المشروع:", error);
     console.error("تفاصيل الخطأ:", error.message);
     res.status(500).json({ error: "خطأ في حذف تصنيف المشروع: " + error.message });
