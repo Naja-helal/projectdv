@@ -123,6 +123,53 @@ try {
     console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
   }
 
+  // ===== فحص وإضافة أعمدة جدول طرق الدفع =====
+  const paymentMethodsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='payment_methods'").all() as Array<{ name: string }>;
+  const hasPaymentMethodsTable = paymentMethodsTables.length > 0;
+  
+  if (hasPaymentMethodsTable) {
+    const pmColumns = db.pragma('table_info(payment_methods)') as Array<{ name: string }>;
+    const hasCode = pmColumns.some((col) => col.name === 'code');
+    const hasDescription = pmColumns.some((col) => col.name === 'description');
+    const hasColor = pmColumns.some((col) => col.name === 'color');
+    const hasIcon = pmColumns.some((col) => col.name === 'icon');
+    const hasIsActive = pmColumns.some((col) => col.name === 'is_active');
+    
+    if (!hasCode) {
+      console.log('➕ إضافة عمود code لجدول payment_methods...');
+      db.exec('ALTER TABLE payment_methods ADD COLUMN code TEXT');
+      console.log('✅ تم إضافة عمود code');
+    }
+    
+    if (!hasDescription) {
+      console.log('➕ إضافة عمود description لجدول payment_methods...');
+      db.exec('ALTER TABLE payment_methods ADD COLUMN description TEXT');
+      console.log('✅ تم إضافة عمود description');
+    }
+    
+    if (!hasColor) {
+      console.log('➕ إضافة عمود color لجدول payment_methods...');
+      db.exec('ALTER TABLE payment_methods ADD COLUMN color TEXT DEFAULT \'#10b981\'');
+      console.log('✅ تم إضافة عمود color');
+    }
+    
+    if (!hasIcon) {
+      console.log('➕ إضافة عمود icon لجدول payment_methods...');
+      db.exec('ALTER TABLE payment_methods ADD COLUMN icon TEXT DEFAULT \'💳\'');
+      console.log('✅ تم إضافة عمود icon');
+    }
+    
+    if (!hasIsActive) {
+      console.log('➕ إضافة عمود is_active لجدول payment_methods...');
+      db.exec('ALTER TABLE payment_methods ADD COLUMN is_active INTEGER DEFAULT 1');
+      console.log('✅ تم إضافة عمود is_active');
+    }
+    
+    if (!hasCode || !hasDescription || !hasColor || !hasIcon || !hasIsActive) {
+      console.log('🎉 تم تحديث جدول payment_methods بنجاح!');
+    }
+  }
+
   // ===== حذف أنواع المشاريع: حذف العمود أولاً ثم الجدول =====
   const projectColumns = db.pragma('table_info(projects)') as Array<{ name: string }>;
   const hasProjectTypeId = projectColumns.some((col) => col.name === 'project_type_id');
