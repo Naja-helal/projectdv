@@ -595,10 +595,10 @@ app.get("/api/expenses", (req, res) => {
     }
     
     console.log(`\n📋 جلب ${rows.length} مصروف - أول مصروف:`, rows[0] ? {
-      id: rows[0].id,
-      description: rows[0].description,
-      payment_method_id: rows[0].payment_method_id,
-      payment_method: rows[0].payment_method
+      id: (rows[0] as any).id,
+      description: (rows[0] as any).description,
+      payment_method_id: (rows[0] as any).payment_method_id,
+      payment_method: (rows[0] as any).payment_method
     } : 'لا يوجد');
     
     res.json(rows);
