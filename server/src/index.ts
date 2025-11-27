@@ -29,6 +29,84 @@ if (!fs.existsSync(dbDir)) {
 
 const db = new Database(dbPath);
 
+// إنشاء الجداول الأساسية إذا لم تكن موجودة
+db.exec(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT DEFAULT '📁',
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  );
+
+  CREATE TABLE IF NOT EXISTS payment_methods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  );
+
+  CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    type TEXT DEFAULT 'استراتيجية',
+    description TEXT,
+    budget REAL DEFAULT 0,
+    expected_spending REAL DEFAULT 0,
+    start_date INTEGER,
+    end_date INTEGER,
+    status TEXT DEFAULT 'active',
+    color TEXT DEFAULT '#3b82f6',
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  );
+
+  CREATE TABLE IF NOT EXISTS project_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    code TEXT,
+    description TEXT,
+    unit_price REAL DEFAULT 0,
+    quantity REAL DEFAULT 0,
+    total_price REAL DEFAULT 0,
+    notes TEXT,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER,
+    category_id INTEGER,
+    item_name TEXT NOT NULL,
+    quantity REAL DEFAULT 1,
+    unit_price REAL DEFAULT 0,
+    total_amount REAL DEFAULT 0,
+    payment_method TEXT,
+    payment_method_id INTEGER,
+    unit_id INTEGER,
+    description TEXT,
+    details TEXT,
+    expense_date INTEGER,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL,
+    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL
+  );
+`);
+
+console.log('✅ تم التأكد من وجود جميع الجداول الأساسية');
+
 // تحديث schema تلقائياً عند بدء التشغيل
 try {
   // ===== فحص وإضافة جدول الوحدات =====
