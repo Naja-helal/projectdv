@@ -183,6 +183,44 @@ try {
     db.exec('ALTER TABLE projects ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
     console.log('✅ تم إضافة عمود project_item_id');
   }
+
+  // ===== فحص وإصلاح جدول project_items =====
+  const projectItemsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_items'").all() as Array<{ name: string }>;
+  const hasProjectItemsTable = projectItemsTables.length > 0;
+  
+  if (hasProjectItemsTable) {
+    const projectItemsColumns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
+    const hasProjectIdInItems = projectItemsColumns.some((col) => col.name === 'project_id');
+    
+    if (!hasProjectIdInItems) {
+      console.log('⚠️ جدول project_items موجود لكن بدون عمود project_id - سيتم إعادة إنشائه...');
+      
+      // تعطيل foreign keys مؤقتاً
+      db.exec('PRAGMA foreign_keys = OFF');
+      
+      // حذف الجدول القديم وإعادة إنشائه
+      db.exec(`
+        DROP TABLE IF EXISTS project_items;
+        
+        CREATE TABLE project_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          budget REAL NOT NULL DEFAULT 0,
+          sort_order INTEGER DEFAULT 0,
+          created_at INTEGER DEFAULT (strftime('%s', 'now')),
+          updated_at INTEGER DEFAULT (strftime('%s', 'now')),
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+      `);
+      
+      // إعادة تفعيل foreign keys
+      db.exec('PRAGMA foreign_keys = ON');
+      
+      console.log('✅ تم إعادة إنشاء جدول project_items بشكل صحيح');
+    }
+  }
 } catch (error) {
   console.error('⚠️ خطأ في تحديث schema:', error);
 }
@@ -952,24 +990,53 @@ app.patch("/api/projects/:id", authenticateAdmin, (req, res) => {
 app.delete("/api/projects/:id", authenticateAdmin, (req, res) => {
   try {
     const id = +req.params.id;
+    console.log('🗑️ محاولة حذف المشروع رقم:', id);
     
-    // حذف عناصر المشروع
-    db.prepare("DELETE FROM project_items WHERE project_id = ?").run(id);
+    // فحص هل جدول project_items موجود وله عمود project_id
+    try {
+      const columns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
+      const hasProjectId = columns.some((col) => col.name === 'project_id');
+      
+      if (hasProjectId) {
+        // حذف عناصر المشروع
+        const itemsResult = db.prepare("DELETE FROM project_items WHERE project_id = ?").run(id);
+        console.log(`✅ تم حذف ${itemsResult.changes} عنصر من المشروع`);
+      } else {
+        console.log('⚠️ جدول project_items لا يحتوي على عمود project_id');
+      }
+    } catch (itemsError) {
+      console.log('⚠️ جدول project_items غير موجود أو حدث خطأ:', itemsError);
+    }
     
     // إزالة ارتباط المصروفات بالمشروع
-    db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
+    try {
+      const expensesResult = db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
+      console.log(`✅ تم تحديث ${expensesResult.changes} مصروف`);
+    } catch (expensesError) {
+      console.log('⚠️ خطأ في تحديث المصروفات:', expensesError);
+    }
     
     // حذف المشروع
     const result = db.prepare("DELETE FROM projects WHERE id = ?").run(id);
+    console.log(`✅ نتيجة حذف المشروع: ${result.changes} صف محذوف`);
     
     if (result.changes === 0) {
+      console.log('❌ المشروع غير موجود');
       return res.status(404).json({ error: "المشروع غير موجود" });
     }
     
+    console.log('🎉 تم حذف المشروع بنجاح');
     res.json({ ok: true, success: true });
-  } catch (error) {
-    console.error("خطأ في حذف المشروع:", error);
-    res.status(500).json({ error: "خطأ في حذف المشروع" });
+  } catch (error: any) {
+    console.error("❌ خطأ في حذف المشروع:");
+    console.error("❌ Error message:", error.message);
+    console.error("❌ Error code:", error.code);
+    console.error("❌ Full error:", error);
+    res.status(500).json({ 
+      error: "خطأ في حذف المشروع",
+      details: error.message,
+      code: error.code
+    });
   }
 });
 

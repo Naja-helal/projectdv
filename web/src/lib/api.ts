@@ -96,16 +96,25 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   
   if (!response.ok) {
     let errorMessage = `خطأ ${response.status}`
+    console.error('❌ Response not OK:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url
+    });
     try {
       const errorData = await response.json()
+      console.error('❌ Error data:', errorData);
       errorMessage = errorData.error || errorMessage
-    } catch {
+    } catch (parseError) {
+      console.error('❌ Could not parse error:', parseError);
       errorMessage = response.statusText || errorMessage
     }
     throw new ApiError(errorMessage, response.status)
   }
   
-  return response.json()
+  const data = await response.json();
+  console.log('✅ Response data:', data);
+  return data
 }
 
 // خدمات المصروفات
@@ -257,9 +266,16 @@ export const projectApi = {
   },
   
   deleteProject: (id: number): Promise<{ ok: boolean }> => {
-    return apiRequest(`/projects/${id}`, {
+    console.log('📡 إرسال طلب حذف المشروع:', id);
+    return apiRequest<{ ok: boolean }>(`/projects/${id}`, {
       method: 'DELETE',
-    })
+    }).then(result => {
+      console.log('📡 استجابة حذف المشروع:', result);
+      return result;
+    }).catch(error => {
+      console.error('📡 خطأ في طلب حذف المشروع:', error);
+      throw error;
+    });
   },
   
   // تصنيف المشاريع

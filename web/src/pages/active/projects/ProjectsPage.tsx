@@ -50,11 +50,23 @@ export default function ProjectsPage() {
 
   // حذف مشروع
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => projectApi.deleteProject(id),
-    onSuccess: () => {
+    mutationFn: async (id: number) => {
+      console.log('🗑️ محاولة حذف المشروع رقم:', id);
+      const result = await projectApi.deleteProject(id);
+      console.log('✅ نتيجة الحذف:', result);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log('🎉 تم الحذف بنجاح:', data);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
       setIsDeleteDialogOpen(false);
       setSelectedProject(null);
+      alert('تم حذف المشروع بنجاح');
+    },
+    onError: (error: any) => {
+      console.error('❌ خطأ في حذف المشروع:', error);
+      alert(error.message || 'حدث خطأ في حذف المشروع');
     },
   });
 
@@ -64,6 +76,7 @@ export default function ProjectsPage() {
   };
 
   const handleDelete = (project: Project) => {
+    console.log('🔴 فتح نافذة حذف المشروع:', project);
     setSelectedProject(project);
     setIsDeleteDialogOpen(true);
   };
@@ -594,12 +607,23 @@ export default function ProjectsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              console.log('❌ إلغاء الحذف');
+              setIsDeleteDialogOpen(false);
+            }}>إلغاء</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => selectedProject && deleteMutation.mutate(selectedProject.id)}
-              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                console.log('⚠️ تأكيد الحذف للمشروع:', selectedProject);
+                if (selectedProject) {
+                  deleteMutation.mutate(selectedProject.id);
+                } else {
+                  console.error('❌ لا يوجد مشروع محدد!');
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
             >
-              حذف
+              {deleteMutation.isPending ? 'جاري الحذف...' : 'حذف'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
