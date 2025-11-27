@@ -34,10 +34,12 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    code TEXT,
     description TEXT,
     color TEXT DEFAULT '#3b82f6',
     icon TEXT DEFAULT '📁',
     is_active INTEGER DEFAULT 1,
+    sort_order INTEGER DEFAULT 0,
     created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
     updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
   );
@@ -76,6 +78,7 @@ db.exec(`
     unit_price REAL DEFAULT 0,
     quantity REAL DEFAULT 0,
     total_price REAL DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
     notes TEXT,
     created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
     updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
@@ -85,6 +88,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER,
+    project_item_id INTEGER,
     category_id INTEGER,
     item_name TEXT NOT NULL,
     quantity REAL DEFAULT 1,
@@ -95,10 +99,12 @@ db.exec(`
     unit_id INTEGER,
     description TEXT,
     details TEXT,
+    date INTEGER,
     expense_date INTEGER,
     created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
     updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+    FOREIGN KEY (project_item_id) REFERENCES project_items(id) ON DELETE SET NULL,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL,
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE SET NULL
@@ -109,6 +115,37 @@ console.log('✅ تم التأكد من وجود جميع الجداول الأ�
 
 // تحديث schema تلقائياً عند بدء التشغيل
 try {
+  // ===== فحص وإضافة الأعمدة الناقصة =====
+  
+  // فحص جدول categories
+  const categoryColumns = db.pragma('table_info(categories)') as Array<{ name: string }>;
+  if (!categoryColumns.some(col => col.name === 'code')) {
+    console.log('➕ إضافة عمود code إلى جدول categories...');
+    db.exec('ALTER TABLE categories ADD COLUMN code TEXT');
+  }
+  if (!categoryColumns.some(col => col.name === 'sort_order')) {
+    console.log('➕ إضافة عمود sort_order إلى جدول categories...');
+    db.exec('ALTER TABLE categories ADD COLUMN sort_order INTEGER DEFAULT 0');
+  }
+  
+  // فحص جدول project_items
+  const projectItemColumns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
+  if (!projectItemColumns.some(col => col.name === 'sort_order')) {
+    console.log('➕ إضافة عمود sort_order إلى جدول project_items...');
+    db.exec('ALTER TABLE project_items ADD COLUMN sort_order INTEGER DEFAULT 0');
+  }
+  
+  // فحص جدول expenses
+  const expenseColumns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
+  if (!expenseColumns.some(col => col.name === 'project_item_id')) {
+    console.log('➕ إضافة عمود project_item_id إلى جدول expenses...');
+    db.exec('ALTER TABLE expenses ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
+  }
+  if (!expenseColumns.some(col => col.name === 'date')) {
+    console.log('➕ إضافة عمود date إلى جدول expenses...');
+    db.exec('ALTER TABLE expenses ADD COLUMN date INTEGER');
+  }
+  
   // ===== فحص وإضافة جدول الوحدات =====
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='units'").all() as Array<{ name: string }>;
   const hasUnitsTable = tables.length > 0;
