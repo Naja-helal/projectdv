@@ -547,13 +547,6 @@ app.get("/api/expenses", (req, res) => {
       });
     }
     
-    console.log(`\n📋 جلب ${rows.length} مصروف - أول مصروف:`, rows[0] ? {
-      id: rows[0].id,
-      description: rows[0].description,
-      payment_method_id: rows[0].payment_method_id,
-      payment_method: rows[0].payment_method
-    } : 'لا يوجد');
-    
     res.json(rows);
   } catch (error) {
     console.error("خطأ في جلب المصروفات:", error);
