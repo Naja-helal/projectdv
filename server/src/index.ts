@@ -566,7 +566,7 @@ app.get("/api/expenses", (req, res) => {
         p.code AS project_code,
         p.color AS project_color,
         pi.name AS project_item_name,
-        COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
+        e.total_amount
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
       LEFT JOIN units u ON u.id = e.unit_id
@@ -869,10 +869,10 @@ app.get("/api/projects", authenticateAdmin, (req, res) => {
     const rows = db.prepare(`
       SELECT 
         p.*,
-        COALESCE(SUM(e.amount), 0) as total_spent,
+        COALESCE(SUM(e.total_amount), 0) as total_spent,
         COUNT(e.id) as expense_count,
         CASE 
-          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.amount), 0) * 100.0 / p.budget), 2)
+          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.total_amount), 0) * 100.0 / p.budget), 2)
           ELSE 0 
         END as completion_percentage
       FROM projects p
@@ -895,10 +895,10 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
     const project = db.prepare(`
       SELECT 
         p.*,
-        COALESCE(SUM(e.amount), 0) as total_spent,
+        COALESCE(SUM(e.total_amount), 0) as total_spent,
         COUNT(e.id) as expense_count,
         CASE 
-          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.amount), 0) * 100.0 / p.budget), 2)
+          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.total_amount), 0) * 100.0 / p.budget), 2)
           ELSE 0 
         END as completion_percentage
       FROM projects p
@@ -926,7 +926,7 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
           c.name as category_name,
           c.color as category_color,
           pi.name as item_name,
-          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
+          e.total_amount
       `;
       
       if (hasPaymentMethods) {
@@ -966,7 +966,7 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
           c.name as category_name,
           c.color as category_color,
           pi.name as item_name,
-          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
+          e.total_amount
         FROM expenses e
         LEFT JOIN categories c ON e.category_id = c.id
         LEFT JOIN project_items pi ON e.project_item_id = pi.id
@@ -1186,7 +1186,7 @@ app.get("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
     const items = db.prepare(`
       SELECT 
         pi.*,
-        COALESCE(SUM(e.amount), 0) as total_spent
+        COALESCE(SUM(e.total_amount), 0) as total_spent
       FROM project_items pi
       LEFT JOIN expenses e ON e.project_item_id = pi.id
       WHERE pi.project_id = ?
@@ -1316,7 +1316,7 @@ app.get("/api/projects/stats/summary", authenticateAdmin, (req, res) => {
         ROUND((COALESCE(SUM(spent.total), 0) * 100.0 / NULLIF(SUM(budget), 0)), 2) as overall_completion
       FROM projects
       LEFT JOIN (
-        SELECT project_id, SUM(amount) as total
+        SELECT project_id, SUM(total_amount) as total
         FROM expenses
         WHERE project_id IS NOT NULL
         GROUP BY project_id
@@ -1427,9 +1427,9 @@ app.get("/api/stats", authenticateAdmin, (req, res) => {
     const total = db.prepare(`
       SELECT 
         COUNT(*) as count,
-        COALESCE(SUM(amount), 0) as total,
-        COALESCE(SUM(amount), 0) as subtotal,
-        COALESCE(SUM(tax_amount), 0) as tax
+        COALESCE(SUM(total_amount), 0) as total,
+        COALESCE(SUM(total_amount), 0) as subtotal,
+        0 as tax
       FROM expenses ${whereClause}
     `).get(...params);
     
@@ -1438,7 +1438,7 @@ app.get("/api/stats", authenticateAdmin, (req, res) => {
       SELECT 
         c.name, c.color, c.icon,
         COUNT(*) as count,
-        COALESCE(SUM(e.amount), 0) as total
+        COALESCE(SUM(e.total_amount), 0) as total
       FROM expenses e
       JOIN categories c ON c.id = e.category_id
       ${whereClause}
