@@ -91,7 +91,7 @@ export interface Expense {
   vendor_id?: number
   quantity?: number
   unit_price?: number
-  unit?: string
+  unit_id?: number
   amount: number
   currency: string
   tax_rate: number
@@ -115,6 +115,7 @@ export interface Expense {
   category_color?: string
   category_icon?: string
   vendor_name?: string
+  unit_name?: string
   project_name?: string
   project_code?: string
   project_color?: string
@@ -151,7 +152,7 @@ export interface CreateExpenseData {
   vendorId?: number
   quantity?: number
   unit_price?: number
-  unit?: string
+  unit_id?: number
   amount: number
   taxRate?: number
   date: number
@@ -171,7 +172,7 @@ export interface ExpenseFormData {
   vendorId?: number
   quantity?: number
   unit_price?: number
-  unit?: string
+  unit_id?: number
   amount: number
   taxRate?: number
   date: string // للنموذج HTML
@@ -295,7 +296,7 @@ export interface Project {
   name: string
   code?: string
   type: string
-  project_type_id?: number
+  project_item_id?: number
   description?: string
   budget: number
   expected_spending?: number
@@ -327,11 +328,24 @@ export interface ProjectItem {
   is_active: boolean
   created_at: number
   updated_at: number
-  // حقول عناصر المشاريع (عند الاستخدام في سياق مشروع)
+  // حقول تصنيف المشاريع (عند الاستخدام في سياق مشروع)
   project_id?: number
   budget?: number
   total_spent?: number
   sort_order?: number
+}
+
+// الوحدات (مستقلة كفئات)
+export interface Unit {
+  id: number
+  name: string
+  code?: string
+  description?: string
+  color?: string
+  icon?: string
+  is_active: boolean
+  created_at: number
+  updated_at: number
 }
 
 // طرق الدفع (مستقلة كفئات)
@@ -347,24 +361,11 @@ export interface PaymentMethod {
   updated_at: number
 }
 
-// أنواع المشاريع (مستقلة كفئات)
-export interface ProjectType {
-  id: number
-  name: string
-  code?: string
-  description?: string
-  color?: string
-  icon?: string
-  is_active: boolean
-  created_at: number
-  updated_at: number
-}
-
 export interface CreateProjectData {
   name: string
   code?: string
   type: string
-  project_type_id?: number
+  project_item_id?: number
   description?: string
   budget: number
   expected_spending?: number
@@ -381,21 +382,13 @@ export interface CreateProjectItemData {
   color?: string
   icon?: string
   unit?: string
-  // حقول عناصر المشاريع (عند الاستخدام في سياق مشروع)
+  // حقول تصنيف المشاريع (عند الاستخدام في سياق مشروع)
   project_id?: number
   budget?: number
   sort_order?: number
 }
 
 export interface CreatePaymentMethodData {
-  name: string
-  code?: string
-  description?: string
-  color?: string
-  icon?: string
-}
-
-export interface CreateProjectTypeData {
   name: string
   code?: string
   description?: string

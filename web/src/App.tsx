@@ -7,7 +7,7 @@ import Expenses from './pages/Expenses'
 import Categories from './pages/CategoriesNew'
 import ProjectItems from './pages/ProjectItems'
 import PaymentMethods from './pages/PaymentMethods'
-import ProjectTypes from './pages/ProjectTypes'
+import Units from './pages/Units'
 import ProjectsPage from './pages/active/projects/ProjectsPage'
 import ProjectDetailsPage from './pages/active/projects/ProjectDetailsPage'
 import StatisticsPage from './pages/StatisticsPage'
@@ -25,7 +25,7 @@ function App() {
               <Route path="/categories" element={<Categories />} />
               <Route path="/project-items" element={<ProjectItems />} />
               <Route path="/payment-methods" element={<PaymentMethods />} />
-              <Route path="/project-types" element={<ProjectTypes />} />
+              <Route path="/units" element={<Units />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/projects/:id" element={<ProjectDetailsPage />} />
               <Route path="/statistics" element={<StatisticsPage />} />

@@ -378,7 +378,7 @@ export default function Expenses() {
                         {expense.quantity && expense.unit_price ? (
                           <div className="text-xs">
                             <div className="text-gray-600">
-                              <span className="font-semibold">{expense.quantity}</span> {expense.unit || 'قطعة'}
+                              <span className="font-semibold">{expense.quantity}</span> {expense.unit_name || 'وحدة'}
                             </div>
                             <div className="text-gray-500">
                               @ {expense.unit_price.toLocaleString()} ر.س

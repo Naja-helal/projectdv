@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useQuery } from "@tanstack/react-query"
-import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi, projectTypeApi } from "@/lib/api"
+import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi } from "@/lib/api"
 import { useNavigate } from "react-router-dom"
 import { Expense } from "@/types"
 
@@ -32,11 +32,6 @@ export default function Dashboard() {
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: paymentMethodApi.getPaymentMethods
-  })
-
-  const { data: projectTypes = [] } = useQuery({
-    queryKey: ['project-types'],
-    queryFn: projectTypeApi.getProjectTypes
   })
 
   // حساب الإحصائيات
@@ -142,21 +137,6 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-              onClick={() => navigate('/project-types')}>
-          <CardContent className="p-4 sm:p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
-              📂
-            </div>
-            <div className="text-3xl sm:text-4xl font-bold text-orange-700 mb-2">
-              {projectTypes.length}
-            </div>
-            <div className="text-sm sm:text-base text-orange-600 font-medium">
-              نوع مشروع للتصنيف
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* الإجراءات السريعة */}
@@ -205,7 +185,7 @@ export default function Dashboard() {
           >
             <div className="flex flex-col items-center gap-2">
               <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📦</div>
-              <span className="text-white text-center">عناصر المشاريع</span>
+              <span className="text-white text-center">تصنيف المشاريع</span>
             </div>
           </Button>
 
@@ -216,16 +196,6 @@ export default function Dashboard() {
             <div className="flex flex-col items-center gap-2">
               <div className="text-3xl group-hover:scale-110 transition-transform duration-300">💳</div>
               <span className="text-white text-center">طرق الدفع</span>
-            </div>
-          </Button>
-
-          <Button
-            onClick={() => navigate('/project-types')}
-            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 border-0"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📂</div>
-              <span className="text-white text-center">أنواع المشاريع</span>
             </div>
           </Button>
         </div>

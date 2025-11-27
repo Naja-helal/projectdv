@@ -41,9 +41,58 @@ const db = new Database(dbPath);
 
 // تحديث schema تلقائياً عند بدء التشغيل
 try {
+  // ===== فحص وإضافة جدول الوحدات =====
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='units'").all() as Array<{ name: string }>;
+  const hasUnitsTable = tables.length > 0;
+  
+  if (!hasUnitsTable) {
+    console.log('📦 إنشاء جدول الوحدات...');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS units (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        code TEXT,
+        description TEXT,
+        color TEXT DEFAULT '#3b82f6',
+        icon TEXT DEFAULT '📏',
+        is_active INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+      )
+    `);
+    console.log('✅ تم إنشاء جدول الوحدات');
+    
+    // إضافة الوحدات الافتراضية
+    const units = [
+      { name: 'قطعة', code: 'PCS', description: 'قطعة واحدة', color: '#3b82f6', icon: '📦' },
+      { name: 'كيس', code: 'BAG', description: 'كيس واحد', color: '#8b5cf6', icon: '🎒' },
+      { name: 'متر', code: 'M', description: 'متر واحد', color: '#10b981', icon: '📏' },
+      { name: 'متر مربع', code: 'M2', description: 'متر مربع واحد', color: '#06b6d4', icon: '⬛' },
+      { name: 'لتر', code: 'L', description: 'لتر واحد', color: '#0ea5e9', icon: '🥤' },
+      { name: 'كيلو', code: 'KG', description: 'كيلوجرام واحد', color: '#f59e0b', icon: '⚖️' },
+      { name: 'طن', code: 'TON', description: 'طن واحد', color: '#ef4444', icon: '🏋️' },
+      { name: 'كرتون', code: 'CTN', description: 'كرتون واحد', color: '#ec4899', icon: '📦' },
+      { name: 'صندوق', code: 'BOX', description: 'صندوق واحد', color: '#a855f7', icon: '🗃️' },
+      { name: 'علبة', code: 'PKG', description: 'علبة واحدة', color: '#14b8a6', icon: '📦' }
+    ];
+    
+    const stmt = db.prepare(`
+      INSERT INTO units (name, code, description, color, icon)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    
+    for (const unit of units) {
+      stmt.run(unit.name, unit.code, unit.description, unit.color, unit.icon);
+    }
+    
+    console.log('✅ تم إضافة 10 وحدات افتراضية');
+  }
+  
+  // ===== فحص وإضافة أعمدة جدول المصروفات =====
   const columns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
   const hasDescription = columns.some((col) => col.name === 'description');
   const hasDetails = columns.some((col) => col.name === 'details');
+  const hasUnitId = columns.some((col) => col.name === 'unit_id');
   
   if (!hasDescription) {
     console.log('➕ إضافة عمود description...');
@@ -57,8 +106,82 @@ try {
     console.log('✅ تم إضافة عمود details');
   }
   
-  if (!hasDescription || !hasDetails) {
+  if (!hasUnitId) {
+    console.log('➕ إضافة عمود unit_id...');
+    db.exec('ALTER TABLE expenses ADD COLUMN unit_id INTEGER REFERENCES units(id)');
+    console.log('✅ تم إضافة عمود unit_id');
+  }
+  
+  if (!hasDescription || !hasDetails || !hasUnitId || !hasUnitsTable) {
     console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
+  }
+
+  // ===== حذف أنواع المشاريع: حذف العمود أولاً ثم الجدول =====
+  const projectColumns = db.pragma('table_info(projects)') as Array<{ name: string }>;
+  const hasProjectTypeId = projectColumns.some((col) => col.name === 'project_type_id');
+  
+  if (hasProjectTypeId) {
+    console.log('🗑️ حذف عمود project_type_id من جدول المشاريع...');
+    
+    // تعطيل foreign keys مؤقتاً
+    db.exec('PRAGMA foreign_keys = OFF');
+    
+    // إعادة إنشاء الجدول بدون العمود
+    db.exec(`
+      BEGIN TRANSACTION;
+      
+      CREATE TABLE projects_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        code TEXT,
+        type TEXT DEFAULT 'استراتيجية',
+        description TEXT,
+        budget REAL DEFAULT 0,
+        expected_spending REAL DEFAULT 0,
+        start_date INTEGER,
+        end_date INTEGER,
+        status TEXT DEFAULT 'active',
+        color TEXT DEFAULT '#3b82f6',
+        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+      );
+      
+      INSERT INTO projects_new (id, name, code, type, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at)
+      SELECT id, name, code, type, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at
+      FROM projects;
+      
+      DROP TABLE projects;
+      ALTER TABLE projects_new RENAME TO projects;
+      
+      COMMIT;
+    `);
+    
+    // إعادة تفعيل foreign keys
+    db.exec('PRAGMA foreign_keys = ON');
+    
+    console.log('✅ تم حذف عمود project_type_id من جدول المشاريع');
+  }
+  
+  // الآن يمكن حذف جدول project_types بأمان
+  const projectTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_types'").all() as Array<{ name: string }>;
+  const hasProjectTypesTable = projectTables.length > 0;
+  
+  if (hasProjectTypesTable) {
+    console.log('🗑️ حذف جدول project_types...');
+    db.exec('DROP TABLE IF EXISTS project_types');
+    console.log('✅ تم حذف جدول project_types');
+  }
+  
+  if (hasProjectTypeId || hasProjectTypesTable) {
+    console.log('🎉 تم حذف أنواع المشاريع بنجاح!');
+  }
+  
+  // إضافة عمود project_item_id إذا لم يكن موجود
+  const hasProjectItemId = projectColumns.some((col) => col.name === 'project_item_id');
+  if (!hasProjectItemId) {
+    console.log('➕ إضافة عمود project_item_id...');
+    db.exec('ALTER TABLE projects ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
+    console.log('✅ تم إضافة عمود project_item_id');
   }
 } catch (error) {
   console.error('⚠️ خطأ في تحديث schema:', error);
@@ -306,10 +429,6 @@ app.get("/api/expenses", (req, res) => {
       where.push("e.project_id = ?"); 
       params.push(+projectId); 
     }
-    if (vendorId) { 
-      where.push("e.vendor_id = ?"); 
-      params.push(+vendorId); 
-    }
     if (q) { 
       where.push("(e.description LIKE ? OR e.notes LIKE ? OR e.details LIKE ?)"); 
       params.push(`%${q}%`, `%${q}%`, `%${q}%`); 
@@ -321,14 +440,14 @@ app.get("/api/expenses", (req, res) => {
         c.name AS category_name,
         c.color AS category_color,
         c.icon AS category_icon,
-        v.name AS vendor_name,
+        u.name AS unit_name,
         p.name AS project_name,
         p.code AS project_code,
         p.color AS project_color,
         pi.name AS project_item_name
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
-      LEFT JOIN vendors v ON v.id = e.vendor_id
+      LEFT JOIN units u ON u.id = e.unit_id
       LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN project_items pi ON pi.id = e.project_item_id
       ${where.length ? "WHERE " + where.join(" AND ") : ""}
@@ -383,8 +502,8 @@ app.get("/api/expenses", (req, res) => {
 app.post("/api/expenses", (req, res) => {
   try {
     const {
-      categoryId, projectId, projectItemId, vendorId,
-      quantity = 1, unit_price, unit = 'قطعة',
+      categoryId, projectId, projectItemId,
+      quantity = 1, unit_price, unit_id,
       amount, taxRate = 0, date,
       paymentMethod, 
       description, details, notes, 
@@ -419,59 +538,53 @@ app.post("/api/expenses", (req, res) => {
       // قاعدة البيانات محدثة - استخدام الكود الكامل
       stmt = db.prepare(`
         INSERT INTO expenses
-          (category_id, project_id, project_item_id, vendor_id, 
-           quantity, unit_price, unit, amount, currency, 
+          (category_id, project_id, project_item_id, 
+           quantity, unit_price, unit_id, amount, 
            tax_rate, tax_amount, total_amount,
-           date, payment_method, 
-           description, details, notes, extra)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           date, 
+           description, details, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
         projectId || null,
         projectItemId || null,
-        vendorId || null,
         quantity || 1,
         unit_price || calculatedAmount,
-        unit || 'قطعة',
+        unit_id || null,
         calculatedAmount, 
         taxRate, 
         taxAmount, 
         totalAmount,
         date, 
-        paymentMethod || null, 
         description || null,
         details || null,
-        notes || null,
-        extra ? JSON.stringify(extra) : null
+        notes || null
       ];
     } else {
       // قاعدة البيانات قديمة - بدون description و details
       stmt = db.prepare(`
         INSERT INTO expenses
-          (category_id, project_id, project_item_id, vendor_id, 
-           quantity, unit_price, unit, amount, currency, 
+          (category_id, project_id, project_item_id, 
+           quantity, unit_price, unit_id, amount, 
            tax_rate, tax_amount, total_amount,
-           date, payment_method, 
-           notes, extra)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SAR', ?, ?, ?, ?, ?, ?, ?)
+           date, 
+           notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
         projectId || null,
         projectItemId || null,
-        vendorId || null,
         quantity || 1,
         unit_price || calculatedAmount,
-        unit || 'قطعة',
+        unit_id || null,
         calculatedAmount, 
         taxRate, 
         taxAmount, 
         totalAmount,
         date, 
-        paymentMethod || null, 
-        notes || null,
-        extra ? JSON.stringify(extra) : null
+        notes || null
       ];
     }
     
@@ -535,27 +648,30 @@ app.patch("/api/expenses/:id", (req, res) => {
 
     const stmt = db.prepare(`
       UPDATE expenses SET
-        category_id=?, vendor_id=?,
-        amount=?, currency='SAR', tax_rate=?, tax_amount=?, total_amount=?,
-        date=?, payment_method=?, 
-        description=?, details=?, notes=?, extra=?,
+        category_id=?, project_id=?, project_item_id=?,
+        quantity=?, unit_price=?, unit_id=?,
+        amount=?, tax_rate=?, tax_amount=?, total_amount=?,
+        date=?, 
+        description=?, details=?, notes=?,
         updated_at=strftime('%s','now')
       WHERE id=?
     `);
     
     stmt.run(
       data.categoryId, 
-      data.vendorId || null,
+      data.projectId || null,
+      data.projectItemId || null,
+      data.quantity || null,
+      data.unit_price || null,
+      data.unit_id || null,
       data.amount, 
       data.taxRate || 0, 
       taxAmount, 
       totalAmount,
       dateValue, 
-      data.paymentMethod || null, 
       data.description || null,
       data.details || null,
       data.notes || null,
-      data.extra ? JSON.stringify(data.extra) : null,
       id
     );
 
@@ -693,7 +809,7 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
       name, 
       code, 
       type,
-      project_type_id,
+      project_item_id,
       description, 
       budget,
       expected_spending, 
@@ -709,7 +825,7 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
 
     const stmt = db.prepare(`
       INSERT INTO projects (
-        name, code, type, project_type_id, description, budget, expected_spending,
+        name, code, type, project_item_id, description, budget, expected_spending,
         start_date, end_date, status, color
       ) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -719,7 +835,7 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
       name,
       code || null,
       type,
-      project_type_id || null,
+      project_item_id || null,
       description || null,
       budget || 0,
       expected_spending || 0,
@@ -748,7 +864,7 @@ app.patch("/api/projects/:id", authenticateAdmin, (req, res) => {
       name, 
       code, 
       type,
-      project_type_id,
+      project_item_id,
       description, 
       budget,
       expected_spending, 
@@ -773,9 +889,9 @@ app.patch("/api/projects/:id", authenticateAdmin, (req, res) => {
       updates.push("type = ?");
       values.push(type);
     }
-    if (project_type_id !== undefined) {
-      updates.push("project_type_id = ?");
-      values.push(project_type_id);
+    if (project_item_id !== undefined) {
+      updates.push("project_item_id = ?");
+      values.push(project_item_id);
     }
     if (description !== undefined) {
       updates.push("description = ?");
@@ -858,7 +974,7 @@ app.delete("/api/projects/:id", authenticateAdmin, (req, res) => {
 });
 
 // =========================
-// مسارات عناصر المشاريع (Project Items)
+// مسارات تصنيف المشاريع (Project Items)
 // =========================
 
 // جلب عناصر مشروع محدد
@@ -879,8 +995,8 @@ app.get("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
     
     res.json(items);
   } catch (error) {
-    console.error("خطأ في جلب عناصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في جلب عناصر المشروع" });
+    console.error("خطأ في جلب تصنيفات المشروع:", error);
+    res.status(500).json({ error: "خطأ في جلب تصنيفات المشروع" });
   }
 });
 
@@ -911,8 +1027,8 @@ app.post("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
     
     res.json({ id: info.lastInsertRowid, success: true });
   } catch (error) {
-    console.error("خطأ في إضافة عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في إضافة عنصر المشروع" });
+    console.error("خطأ في إضافة تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع" });
   }
 });
 
@@ -954,13 +1070,13 @@ app.patch("/api/project-items/:id", authenticateAdmin, (req, res) => {
     ).run(...values);
     
     if (result.changes === 0) {
-      return res.status(404).json({ error: "عنصر المشروع غير موجود" });
+      return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
     
     res.json({ ok: true, success: true });
   } catch (error) {
-    console.error("خطأ في تحديث عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في تحديث عنصر المشروع" });
+    console.error("خطأ في تحديث تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في تحديث تصنيف المشروع" });
   }
 });
 
@@ -976,13 +1092,13 @@ app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
     const result = db.prepare("DELETE FROM project_items WHERE id = ?").run(id);
     
     if (result.changes === 0) {
-      return res.status(404).json({ error: "عنصر المشروع غير موجود" });
+      return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
     
     res.json({ ok: true, success: true });
   } catch (error) {
-    console.error("خطأ في حذف عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في حذف عنصر المشروع" });
+    console.error("خطأ في حذف تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في حذف تصنيف المشروع" });
   }
 });
 
@@ -1169,13 +1285,13 @@ app.get("/api/project-items/:id", authenticateAdmin, (req, res) => {
     `).get(req.params.id);
     
     if (!item) {
-      return res.status(404).json({ error: "عنصر المشروع غير موجود" });
+      return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
     
     res.json(item);
   } catch (error) {
-    console.error("خطأ في جلب عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في جلب عنصر المشروع" });
+    console.error("خطأ في جلب تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في جلب تصنيف المشروع" });
   }
 });
 
@@ -1192,11 +1308,11 @@ app.post("/api/project-items", authenticateAdmin, (req, res) => {
 
     res.json({ 
       id: result.lastInsertRowid, 
-      message: "تم إضافة عنصر المشروع بنجاح" 
+      message: "تم إضافة تصنيف المشروع بنجاح" 
     });
   } catch (error) {
-    console.error("خطأ في إضافة عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في إضافة عنصر المشروع" });
+    console.error("خطأ في إضافة تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع" });
   }
 });
 
@@ -1213,13 +1329,13 @@ app.put("/api/project-items/:id", authenticateAdmin, (req, res) => {
     `).run(name, code || null, description || null, color || '#3b82f6', icon || '📦', unit || null, now, req.params.id);
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: "عنصر المشروع غير موجود" });
+      return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
 
-    res.json({ message: "تم تحديث عنصر المشروع بنجاح" });
+    res.json({ message: "تم تحديث تصنيف المشروع بنجاح" });
   } catch (error) {
-    console.error("خطأ في تحديث عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في تحديث عنصر المشروع" });
+    console.error("خطأ في تحديث تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في تحديث تصنيف المشروع" });
   }
 });
 
@@ -1233,13 +1349,112 @@ app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
     `).run(Date.now(), req.params.id);
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: "عنصر المشروع غير موجود" });
+      return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
 
-    res.json({ message: "تم حذف عنصر المشروع بنجاح" });
+    res.json({ message: "تم حذف تصنيف المشروع بنجاح" });
   } catch (error) {
-    console.error("خطأ في حذف عنصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في حذف عنصر المشروع" });
+    console.error("خطأ في حذف تصنيف المشروع:", error);
+    res.status(500).json({ error: "خطأ في حذف تصنيف المشروع" });
+  }
+});
+
+// ==================== الوحدات (مستقلة) ====================
+
+// جلب جميع الوحدات
+app.get("/api/units", authenticateAdmin, (req, res) => {
+  try {
+    const units = db.prepare(`
+      SELECT * FROM units 
+      WHERE is_active = 1 
+      ORDER BY name
+    `).all();
+    res.json(units);
+  } catch (error) {
+    console.error("خطأ في جلب الوحدات:", error);
+    res.status(500).json({ error: "خطأ في جلب الوحدات" });
+  }
+});
+
+// جلب وحدة واحدة
+app.get("/api/units/:id", authenticateAdmin, (req, res) => {
+  try {
+    const unit = db.prepare(`
+      SELECT * FROM units WHERE id = ?
+    `).get(req.params.id);
+    
+    if (!unit) {
+      return res.status(404).json({ error: "الوحدة غير موجودة" });
+    }
+    
+    res.json(unit);
+  } catch (error) {
+    console.error("خطأ في جلب الوحدة:", error);
+    res.status(500).json({ error: "خطأ في جلب الوحدة" });
+  }
+});
+
+// إضافة وحدة جديدة
+app.post("/api/units", authenticateAdmin, (req, res) => {
+  try {
+    const { name, code, description, color, icon } = req.body;
+    const now = Date.now();
+
+    const result = db.prepare(`
+      INSERT INTO units (name, code, description, color, icon, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(name, code || null, description || null, color || '#3b82f6', icon || '📏', now, now);
+
+    res.json({ 
+      id: result.lastInsertRowid, 
+      message: "تم إضافة الوحدة بنجاح" 
+    });
+  } catch (error) {
+    console.error("خطأ في إضافة الوحدة:", error);
+    res.status(500).json({ error: "خطأ في إضافة الوحدة" });
+  }
+});
+
+// تحديث وحدة
+app.put("/api/units/:id", authenticateAdmin, (req, res) => {
+  try {
+    const { name, code, description, color, icon } = req.body;
+    const now = Date.now();
+
+    const result = db.prepare(`
+      UPDATE units 
+      SET name = ?, code = ?, description = ?, color = ?, icon = ?, updated_at = ?
+      WHERE id = ?
+    `).run(name, code || null, description || null, color || '#3b82f6', icon || '📏', now, req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "الوحدة غير موجودة" });
+    }
+
+    res.json({ message: "تم تحديث الوحدة بنجاح" });
+  } catch (error) {
+    console.error("خطأ في تحديث الوحدة:", error);
+    res.status(500).json({ error: "خطأ في تحديث الوحدة" });
+  }
+});
+
+// حذف وحدة (soft delete)
+app.delete("/api/units/:id", authenticateAdmin, (req, res) => {
+  try {
+    const result = db.prepare(`
+      UPDATE units 
+      SET is_active = 0, updated_at = ?
+      WHERE id = ?
+    `).run(Date.now(), req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "الوحدة غير موجودة" });
+    }
+
+    res.json({ message: "تم حذف الوحدة بنجاح" });
+  } catch (error) {
+    console.error("خطأ في حذف الوحدة:", error);
+    res.status(500).json({ error: "خطأ في حذف الوحدة" });
   }
 });
 
@@ -1339,105 +1554,6 @@ app.delete("/api/payment-methods/:id", authenticateAdmin, (req, res) => {
   } catch (error) {
     console.error("خطأ في حذف طريقة الدفع:", error);
     res.status(500).json({ error: "خطأ في حذف طريقة الدفع" });
-  }
-});
-
-// ==================== أنواع المشاريع (مستقلة) ====================
-
-// جلب جميع أنواع المشاريع
-app.get("/api/project-types", authenticateAdmin, (req, res) => {
-  try {
-    const types = db.prepare(`
-      SELECT * FROM project_types 
-      WHERE is_active = 1 
-      ORDER BY name
-    `).all();
-    res.json(types);
-  } catch (error) {
-    console.error("خطأ في جلب أنواع المشاريع:", error);
-    res.status(500).json({ error: "خطأ في جلب أنواع المشاريع" });
-  }
-});
-
-// جلب نوع مشروع واحد
-app.get("/api/project-types/:id", authenticateAdmin, (req, res) => {
-  try {
-    const type = db.prepare(`
-      SELECT * FROM project_types WHERE id = ?
-    `).get(req.params.id);
-    
-    if (!type) {
-      return res.status(404).json({ error: "نوع المشروع غير موجود" });
-    }
-    
-    res.json(type);
-  } catch (error) {
-    console.error("خطأ في جلب نوع المشروع:", error);
-    res.status(500).json({ error: "خطأ في جلب نوع المشروع" });
-  }
-});
-
-// إضافة نوع مشروع جديد
-app.post("/api/project-types", authenticateAdmin, (req, res) => {
-  try {
-    const { name, code, description, color, icon } = req.body;
-    const now = Date.now();
-
-    const result = db.prepare(`
-      INSERT INTO project_types (name, code, description, color, icon, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(name, code || null, description || null, color || '#3b82f6', icon || '📂', now, now);
-
-    res.json({ 
-      id: result.lastInsertRowid, 
-      message: "تم إضافة نوع المشروع بنجاح" 
-    });
-  } catch (error) {
-    console.error("خطأ في إضافة نوع المشروع:", error);
-    res.status(500).json({ error: "خطأ في إضافة نوع المشروع" });
-  }
-});
-
-// تحديث نوع مشروع
-app.put("/api/project-types/:id", authenticateAdmin, (req, res) => {
-  try {
-    const { name, code, description, color, icon } = req.body;
-    const now = Date.now();
-
-    const result = db.prepare(`
-      UPDATE project_types 
-      SET name = ?, code = ?, description = ?, color = ?, icon = ?, updated_at = ?
-      WHERE id = ?
-    `).run(name, code || null, description || null, color || '#3b82f6', icon || '📂', now, req.params.id);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: "نوع المشروع غير موجود" });
-    }
-
-    res.json({ message: "تم تحديث نوع المشروع بنجاح" });
-  } catch (error) {
-    console.error("خطأ في تحديث نوع المشروع:", error);
-    res.status(500).json({ error: "خطأ في تحديث نوع المشروع" });
-  }
-});
-
-// حذف نوع مشروع (soft delete)
-app.delete("/api/project-types/:id", authenticateAdmin, (req, res) => {
-  try {
-    const result = db.prepare(`
-      UPDATE project_types 
-      SET is_active = 0, updated_at = ?
-      WHERE id = ?
-    `).run(Date.now(), req.params.id);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: "نوع المشروع غير موجود" });
-    }
-
-    res.json({ message: "تم حذف نوع المشروع بنجاح" });
-  } catch (error) {
-    console.error("خطأ في حذف نوع المشروع:", error);
-    res.status(500).json({ error: "خطأ في حذف نوع المشروع" });
   }
 });
 

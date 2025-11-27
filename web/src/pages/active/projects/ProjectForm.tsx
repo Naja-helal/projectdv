@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { projectApi, projectTypeApi } from '@/lib/api';
+import { projectApi, projectItemApi } from '@/lib/api';
 import { Project, CreateProjectData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
     name: project?.name || '',
     code: project?.code || '',
     type: project?.type || 'استراتيجية',
+    project_item_id: project?.project_item_id || undefined,
     description: project?.description || '',
     budget: project?.budget || 0,
     expected_spending: project?.expected_spending || 0,
@@ -33,15 +34,14 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
     end_date: project?.end_date || undefined,
     status: project?.status || 'active',
     color: project?.color || '#3b82f6',
-    project_type_id: project?.project_type_id || undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // جلب أنواع المشاريع
-  const { data: projectTypes = [] } = useQuery({
-    queryKey: ['project-types'],
-    queryFn: projectTypeApi.getProjectTypes,
+  // جلب تصنيفات المشاريع
+  const { data: projectItems = [] } = useQuery({
+    queryKey: ['project-items'],
+    queryFn: projectItemApi.getProjectItems,
   });
 
   // إنشاء أو تحديث مشروع
@@ -70,9 +70,6 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
     if (!formData.name) {
       newErrors.name = 'اسم المشروع مطلوب';
     }
-    if (!formData.type) {
-      newErrors.type = 'نوع المشروع مطلوب';
-    }
     if (formData.budget < 0) {
       newErrors.budget = 'الميزانية يجب أن تكون رقماً موجباً';
     }
@@ -84,17 +81,6 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
 
     mutation.mutate(formData);
   };
-
-  const projectTypesOld = [
-    'استراتيجية',
-    'تطويرية',
-    'تنظيمية',
-    'تجريبية',
-    'استثمارية',
-    'بحثية',
-    'خدمية',
-    'بنية تحتية',
-  ];
 
   const statusOptions = [
     { value: 'active', label: 'نشط' },
@@ -148,7 +134,7 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           {errors.name && <p className="text-sm text-red-600 font-medium">{errors.name}</p>}
         </div>
 
-        {/* رمز المشروع ونوع المشروع */}
+        {/* رمز المشروع وتصنيف المشروع */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* رمز المشروع */}
           <div className="space-y-3">
@@ -162,41 +148,22 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             />
           </div>
 
-          {/* نوع المشروع */}
+          {/* تصنيف المشروع */}
           <div className="space-y-3">
-            <Label htmlFor="type" className="text-base font-semibold">نوع المشروع *</Label>
+            <Label htmlFor="project_item_id" className="text-base font-semibold">تصنيف المشروع (اختياري)</Label>
             <select
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className={`w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${errors.type ? 'border-red-500' : ''}`}
+              value={formData.project_item_id || ''}
+              onChange={(e) => setFormData({ ...formData, project_item_id: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
             >
-              <option value="">اختر نوع المشروع</option>
-              {projectTypesOld.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              <option value="">اختر تصنيف المشروع</option>
+              {projectItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.icon} {item.name}
                 </option>
               ))}
             </select>
-            {errors.type && <p className="text-sm text-red-600 font-medium">{errors.type}</p>}
           </div>
-        </div>
-
-        {/* تصنيف المشروع */}
-        <div className="space-y-3">
-          <Label htmlFor="project_type_id" className="text-base font-semibold">تصنيف المشروع</Label>
-          <select
-            value={formData.project_type_id || ''}
-            onChange={(e) => setFormData({ ...formData, project_type_id: e.target.value ? parseInt(e.target.value) : undefined })}
-            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          >
-            <option value="">اختر التصنيف</option>
-            {projectTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.icon} {type.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-gray-500 mt-1">يستخدم للإحصائيات والتقارير</p>
         </div>
 
         {/* قيمة العقد والإنفاق المتوقع */}

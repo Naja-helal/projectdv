@@ -45,7 +45,7 @@ export default function ProjectItems() {
       setShowForm(false)
     },
     onError: (error) => {
-      console.error('خطأ في إضافة عنصر المشروع:', error)
+      console.error('خطأ في إضافة تصنيف المشروع:', error)
     }
   })
 
@@ -111,9 +111,9 @@ export default function ProjectItems() {
     <div className="space-y-6 p-3 sm:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">📦 عناصر المشاريع</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">📦 تصنيف المشاريع</h1>
           <p className="text-muted-foreground mt-2">
-            إدارة عناصر المشاريع ({projectItems.length} عنصر)
+            إدارة تصنيف المشاريع ({projectItems.length} تصنيف)
           </p>
         </div>
         <Button 
@@ -238,7 +238,7 @@ export default function ProjectItems() {
           <DialogHeader>
             <DialogTitle>إضافة عنصر مشروع جديد</DialogTitle>
             <DialogDescription>
-              أدخل تفاصيل عنصر المشروع الجديد
+              أدخل تفاصيل تصنيف المشروع الجديد
             </DialogDescription>
           </DialogHeader>
 

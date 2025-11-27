@@ -200,7 +200,7 @@ export default function ProjectDetailsPage() {
       </div>
 
       {/* بطاقات الإحصائيات */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <Card className="p-6" style={{ borderTop: `4px solid ${project.color || '#3b82f6'}` }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-600">قيمة العقد</p>
@@ -265,6 +265,17 @@ export default function ProjectDetailsPage() {
               style={{ width: `${Math.min(completionPercentage, 100)}%` }}
             ></div>
           </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-gray-600">الربح المتوقع</p>
+            <TrendingUp className="h-5 w-5 text-emerald-500" />
+          </div>
+          <p className="text-3xl font-bold text-emerald-600">
+            {((project.budget || 0) - (project.expected_spending || 0)).toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">ريال سعودي</p>
         </Card>
       </div>
 
@@ -339,7 +350,6 @@ export default function ProjectDetailsPage() {
                         <SortIcon field="category" />
                       </button>
                     </th>
-                    <th className="text-right py-4 px-4 font-bold text-gray-800">📦 العنصر</th>
                     <th className="text-center py-4 px-4 font-bold text-gray-800">
                       <button
                         onClick={() => handleSort('quantity')}
@@ -349,7 +359,9 @@ export default function ProjectDetailsPage() {
                         <SortIcon field="quantity" />
                       </button>
                     </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">💵 سعر الوحدة</th>
                     <th className="text-right py-4 px-4 font-bold text-gray-800">💳 الدفع</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">📊 الضريبة</th>
                     <th className="text-right py-4 px-4 font-bold text-gray-800">
                       <button
                         onClick={() => handleSort('amount')}
@@ -364,10 +376,10 @@ export default function ProjectDetailsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {sortedExpenses.map((expense: any) => (
                     <tr key={expense.id} className="hover:bg-blue-50 transition-colors duration-150">
-                      <td className="py-4 px-4 text-gray-700 font-medium">
+                      <td className="py-4 px-4 text-gray-700 font-medium whitespace-nowrap">
                         {new Date(expense.date).toLocaleDateString('ar-SA')}
                       </td>
-                      <td className="py-4 px-4 font-semibold text-gray-900">
+                      <td className="py-4 px-4 font-semibold text-gray-900 min-w-[150px]">
                         {expense.description || '-'}
                       </td>
                       <td className="py-4 px-4 text-gray-600 max-w-xs">
@@ -377,35 +389,38 @@ export default function ProjectDetailsPage() {
                       </td>
                       <td className="py-4 px-4">
                         <Badge
-                          className="text-xs font-semibold px-3 py-1"
+                          className="text-xs font-semibold px-3 py-1 whitespace-nowrap"
                           style={{ backgroundColor: expense.category_color || '#6b7280' }}
                         >
                           {expense.category_name}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 text-gray-700">
-                        {expense.item_name || '-'}
+                      <td className="py-4 px-4 text-gray-700 text-center font-medium whitespace-nowrap">
+                        {expense.quantity ? `${expense.quantity} ${expense.unit_name || ''}` : '-'}
                       </td>
-                      <td className="py-4 px-4 text-gray-700 text-center font-medium">
-                        {expense.quantity ? `${expense.quantity} ${expense.unit || ''}` : '-'}
+                      <td className="py-4 px-4 text-gray-700 font-medium whitespace-nowrap">
+                        {expense.unit_price ? `${expense.unit_price.toLocaleString()} ر.س` : '-'}
                       </td>
                       <td className="py-4 px-4 text-gray-700">
                         {expense.payment_method || '-'}
                       </td>
-                      <td className="py-4 px-4 font-bold text-lg text-green-700">
-                        {expense.amount.toLocaleString()} ر.س
+                      <td className="py-4 px-4 text-gray-700 whitespace-nowrap">
+                        {expense.tax_rate ? `${expense.tax_rate}% (${expense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
+                      </td>
+                      <td className="py-4 px-4 font-bold text-lg text-green-700 whitespace-nowrap">
+                        {expense.total_amount ? expense.total_amount.toLocaleString() : expense.amount.toLocaleString()} ر.س
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-gradient-to-r from-green-50 to-green-100">
                   <tr className="border-t-2 border-green-300">
-                    <td colSpan={7} className="py-4 px-4 text-right">
+                    <td colSpan={8} className="py-4 px-4 text-right">
                       <span className="text-lg font-bold text-gray-900">💰 الإجمالي:</span>
                     </td>
                     <td className="py-4 px-4">
                       <span className="text-xl font-extrabold text-green-700">
-                        {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                        {project.expenses.reduce((sum: number, exp: any) => sum + (exp.total_amount || exp.amount), 0).toLocaleString()} ر.س
                       </span>
                     </td>
                   </tr>
@@ -429,7 +444,7 @@ export default function ProjectDetailsPage() {
                     </div>
                     <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg px-4 py-2 mr-2">
                       <span className="text-xl font-extrabold text-green-700 whitespace-nowrap">
-                        {expense.amount.toLocaleString()} ر.س
+                        {(expense.total_amount || expense.amount).toLocaleString()} ر.س
                       </span>
                     </div>
                   </div>
@@ -437,12 +452,29 @@ export default function ProjectDetailsPage() {
                   {/* Details */}
                   {expense.details && (
                     <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">📋 التفاصيل:</p>
                       <p className="text-sm text-gray-700 leading-relaxed">{expense.details}</p>
                     </div>
                   )}
 
+                  {/* Notes */}
+                  {expense.notes && (
+                    <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-100">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">📝 ملاحظات:</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{expense.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Extra Info */}
+                  {expense.extra && (
+                    <div className="bg-purple-50 rounded-lg p-3 mb-4 border border-purple-100">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">➕ معلومات إضافية:</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{expense.extra}</p>
+                    </div>
+                  )}
+
                   {/* Info Grid */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500 mb-2 font-medium">🏷️ الفئة</p>
                       <Badge
@@ -452,17 +484,19 @@ export default function ProjectDetailsPage() {
                         {expense.category_name}
                       </Badge>
                     </div>
-                    {expense.item_name && (
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-2 font-medium">📦 العنصر</p>
-                        <p className="text-sm font-semibold text-gray-900">{expense.item_name}</p>
-                      </div>
-                    )}
                     {expense.quantity && (
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500 mb-2 font-medium">🔢 الكمية</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {expense.quantity} {expense.unit || ''}
+                        <p className="text-xs text-gray-500 mb-1">🔢 الكمية</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.quantity} {expense.unit_name || ''}
+                        </p>
+                      </div>
+                    )}
+                    {expense.unit_price && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">💵 سعر الوحدة</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.unit_price.toLocaleString()} ر.س
                         </p>
                       </div>
                     )}
@@ -472,6 +506,20 @@ export default function ProjectDetailsPage() {
                         <p className="text-sm font-semibold text-gray-900">{expense.payment_method}</p>
                       </div>
                     )}
+                    {expense.tax_rate > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">📊 الضريبة</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.tax_rate}% ({(expense.tax_amount || 0).toLocaleString()} ر.س)
+                        </p>
+                      </div>
+                    )}
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">💵 المبلغ الأساسي</p>
+                      <p className="text-sm font-semibold text-blue-700">
+                        {expense.amount.toLocaleString()} ر.س
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -483,7 +531,7 @@ export default function ProjectDetailsPage() {
                     💰 الإجمالي:
                   </span>
                   <span className="text-2xl font-extrabold text-green-700">
-                    {project.expenses.reduce((sum: number, exp: any) => sum + exp.amount, 0).toLocaleString()} ر.س
+                    {project.expenses.reduce((sum: number, exp: any) => sum + (exp.total_amount || exp.amount), 0).toLocaleString()} ر.س
                   </span>
                 </div>
               </div>

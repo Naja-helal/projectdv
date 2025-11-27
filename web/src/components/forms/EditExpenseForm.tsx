@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { expenseApi, categoryApi, projectApi, projectItemApi, paymentMethodApi } from '@/lib/api'
+import { expenseApi, categoryApi, projectApi, paymentMethodApi, unitApi } from '@/lib/api'
 import type { CreateExpenseData, Expense } from '@/types'
 
 interface EditExpenseFormProps {
@@ -27,7 +27,7 @@ interface FormData {
   projectItemId: string
   quantity: string
   unit_price: string
-  unit: string
+  unit_id: string
   amount: string
   taxRate: string
   date: string
@@ -56,7 +56,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       projectItemId: '',
       quantity: '1',
       unit_price: '',
-      unit: 'قطعة',
+      unit_id: '',
       amount: '',
       taxRate: '0',
       date: new Date().toISOString().split('T')[0],
@@ -79,26 +79,17 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
     queryFn: projectApi.getProjects
   })
 
-  // جلب جميع عناصر المشروع المستقلة
-  const { data: projectItems = [] } = useQuery({
-    queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems
-  })
-
   // جلب جميع طرق الدفع المستقلة
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: paymentMethodApi.getPaymentMethods
   })
 
-  // مراقبة المشروع المختار
-  const selectedProjectId = watch('projectId')
-
-  // عند تغيير المشروع، إعادة تعيين العنصر
-  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setValue('projectId', e.target.value)
-    setValue('projectItemId', '')
-  }
+  // جلب جميع الوحدات
+  const { data: units = [] } = useQuery({
+    queryKey: ['units'],
+    queryFn: unitApi.getUnits
+  })
 
   // تحميل بيانات المصروف عند فتح الفورم
   useEffect(() => {
@@ -108,7 +99,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       setValue('projectItemId', expense.project_item_id ? String(expense.project_item_id) : '')
       setValue('quantity', expense.quantity ? String(expense.quantity) : '1')
       setValue('unit_price', expense.unit_price ? String(expense.unit_price) : '')
-      setValue('unit', expense.unit || 'قطعة')
+      setValue('unit_id', expense.unit_id ? String(expense.unit_id) : '')
       setValue('amount', String(expense.amount))
       setValue('taxRate', String(expense.tax_rate || 0))
       setValue('useQuantity', !!(expense.quantity && expense.unit_price))
@@ -151,7 +142,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       projectItemId: data.projectItemId ? parseInt(data.projectItemId) : undefined,
       quantity: data.useQuantity ? parseFloat(data.quantity) : undefined,
       unit_price: data.useQuantity ? parseFloat(data.unit_price) : undefined,
-      unit: data.useQuantity ? data.unit : undefined,
+      unit_id: data.useQuantity && data.unit_id ? parseInt(data.unit_id) : undefined,
       amount: !data.useQuantity ? parseFloat(data.amount) : parseFloat(data.quantity) * parseFloat(data.unit_price),
       taxRate: parseFloat(data.taxRate),
       date: new Date(data.date).getTime(),
@@ -257,7 +248,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               <Label htmlFor="projectId" className="text-base font-semibold">المشروع (اختياري)</Label>
               <select
                 {...register('projectId')}
-                onChange={handleProjectChange}
                 className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="">بدون مشروع</option>
@@ -268,24 +258,6 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                 ))}
               </select>
             </div>
-
-            {/* عنصر المشروع */}
-            {selectedProjectId && projectItems.length > 0 && (
-              <div className="space-y-3">
-                <Label htmlFor="projectItemId" className="text-base font-semibold">عنصر المشروع (اختياري)</Label>
-                <select
-                  {...register('projectItemId')}
-                  className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                >
-                  <option value="">بدون عنصر محدد</option>
-                  {projectItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* التبديل بين نظام الكمية والمبلغ المباشر */}
             <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
@@ -349,20 +321,17 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
 
                 {/* الوحدة */}
                 <div className="space-y-2">
-                  <Label htmlFor="unit" className="text-sm font-semibold">الوحدة</Label>
+                  <Label htmlFor="unit_id" className="text-sm font-semibold">الوحدة</Label>
                   <select
-                    {...register('unit')}
+                    {...register('unit_id')}
                     className="w-full p-3 border-2 rounded-lg text-base"
                   >
-                    <option value="قطعة">قطعة</option>
-                    <option value="كيس">كيس</option>
-                    <option value="متر">متر</option>
-                    <option value="متر مربع">متر مربع</option>
-                    <option value="طن">طن</option>
-                    <option value="صندوق">صندوق</option>
-                    <option value="لتر">لتر</option>
-                    <option value="كيلو">كيلو</option>
-                    <option value="عبوة">عبوة</option>
+                    <option value="">اختر الوحدة...</option>
+                    {units.map((unit: any) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.icon} {unit.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

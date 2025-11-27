@@ -53,7 +53,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
       onClose()
     },
     onError: (error: Error) => {
-      console.error('خطأ في تحديث عنصر المشروع:', error)
+      console.error('خطأ في تحديث تصنيف المشروع:', error)
     }
   })
 
@@ -84,8 +84,8 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>تعديل عنصر المشروع</DialogTitle>
-          <DialogDescription>تحديث معلومات عنصر المشروع</DialogDescription>
+          <DialogTitle>تعديل تصنيف المشروع</DialogTitle>
+          <DialogDescription>تحديث معلومات تصنيف المشروع</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,7 +131,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
               id="edit-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="وصف عنصر المشروع..."
+              placeholder="وصف تصنيف المشروع..."
               rows={3}
             />
           </div>

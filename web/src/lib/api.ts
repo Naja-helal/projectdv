@@ -11,11 +11,10 @@ import type {
   Project,
   ProjectItem,
   PaymentMethod,
-  ProjectType,
+  Unit,
   CreateProjectData,
   CreateProjectItemData,
   CreatePaymentMethodData,
-  CreateProjectTypeData,
   Employee,
   MonthlySalary
 } from '@/types'
@@ -263,7 +262,7 @@ export const projectApi = {
     })
   },
   
-  // عناصر المشاريع
+  // تصنيف المشاريع
   getProjectItems: (projectId: number): Promise<any[]> => {
     return apiRequest(`/projects/${projectId}/items`)
   },
@@ -471,6 +470,42 @@ export const projectItemApi = {
   },
 }
 
+// خدمة إدارة الوحدات (مستقلة)
+export const unitApi = {
+  // جلب جميع الوحدات
+  getUnits: (): Promise<Unit[]> => {
+    return apiRequest('/units')
+  },
+
+  // جلب وحدة واحدة
+  getUnit: (id: number): Promise<Unit> => {
+    return apiRequest(`/units/${id}`)
+  },
+
+  // إضافة وحدة جديدة
+  createUnit: (data: any): Promise<CreateEntityResponse> => {
+    return apiRequest('/units', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // تحديث وحدة
+  updateUnit: (id: number, data: any): Promise<{ message: string }> => {
+    return apiRequest(`/units/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // حذف وحدة
+  deleteUnit: (id: number): Promise<{ message: string }> => {
+    return apiRequest(`/units/${id}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
 // خدمة إدارة طرق الدفع (مستقلة)
 export const paymentMethodApi = {
   // جلب جميع طرق الدفع
@@ -502,42 +537,6 @@ export const paymentMethodApi = {
   // حذف طريقة دفع
   deletePaymentMethod: (id: number): Promise<{ message: string }> => {
     return apiRequest(`/payment-methods/${id}`, {
-      method: 'DELETE',
-    })
-  },
-}
-
-// خدمة إدارة أنواع المشاريع (مستقلة)
-export const projectTypeApi = {
-  // جلب جميع أنواع المشاريع
-  getProjectTypes: (): Promise<ProjectType[]> => {
-    return apiRequest('/project-types')
-  },
-
-  // جلب نوع مشروع واحد
-  getProjectType: (id: number): Promise<ProjectType> => {
-    return apiRequest(`/project-types/${id}`)
-  },
-
-  // إضافة نوع مشروع جديد
-  createProjectType: (data: CreateProjectTypeData): Promise<CreateEntityResponse> => {
-    return apiRequest('/project-types', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  // تحديث نوع مشروع
-  updateProjectType: (id: number, data: Partial<CreateProjectTypeData>): Promise<{ message: string }> => {
-    return apiRequest(`/project-types/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-  },
-
-  // حذف نوع مشروع
-  deleteProjectType: (id: number): Promise<{ message: string }> => {
-    return apiRequest(`/project-types/${id}`, {
       method: 'DELETE',
     })
   },

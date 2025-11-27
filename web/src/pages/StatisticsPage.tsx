@@ -20,12 +20,12 @@ import {
   Calendar,
   Wallet,
 } from 'lucide-react';
-import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi, projectTypeApi } from '@/lib/api';
+import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi } from '@/lib/api';
 import Papa from 'papaparse';
 
 type TimeRange = 'month' | 'quarter' | 'year' | 'all';
 
-import { Expense, Project, Category, ProjectItem, PaymentMethod, ProjectType } from '@/types';
+import { Expense, Project, Category, ProjectItem, PaymentMethod } from '@/types';
 
 export default function StatisticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('all');
@@ -58,11 +58,6 @@ export default function StatisticsPage() {
   const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
     queryKey: ['payment-methods'],
     queryFn: paymentMethodApi.getPaymentMethods,
-  });
-
-  const { data: projectTypes = [] } = useQuery<ProjectType[]>({
-    queryKey: ['project-types'],
-    queryFn: projectTypeApi.getProjectTypes,
   });
 
   // Filter expenses by date range
@@ -213,7 +208,7 @@ export default function StatisticsPage() {
     return Array.from(categoryMap.values()).sort((a, b) => b.total - a.total);
   }, [filteredExpenses, categories]);
 
-  // إحصائيات عناصر المشاريع
+  // إحصائيات تصنيف المشاريع
   const projectItemsStats = useMemo(() => {
     const itemsMap = new Map<number, { name: string; count: number; total: number; unit?: string }>();
     
@@ -230,7 +225,7 @@ export default function StatisticsPage() {
               name: item.name,
               count: expense.quantity || 1,
               total: expense.amount,
-              unit: item.unit || expense.unit,
+              unit: item.unit || '',
             });
           }
         }
@@ -261,41 +256,6 @@ export default function StatisticsPage() {
 
     return Array.from(methodsMap.values()).sort((a, b) => b.total - a.total);
   }, [filteredExpenses]);
-
-  // إحصائيات أنواع المشاريع
-  const projectTypesStats = useMemo(() => {
-    const typesMap = new Map<string, { 
-      name: string; 
-      projectCount: number; 
-      budget: number; 
-      actual: number;
-      remaining: number;
-    }>();
-    
-    projects.forEach(project => {
-      const type = project.type || 'غير محدد';
-      const projectExpenses = filteredExpenses.filter(e => e.project_id === project.id);
-      const actualSpent = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
-      
-      if (typesMap.has(type)) {
-        const data = typesMap.get(type)!;
-        data.projectCount += 1;
-        data.budget += project.budget || 0;
-        data.actual += actualSpent;
-        data.remaining += (project.budget || 0) - actualSpent;
-      } else {
-        typesMap.set(type, {
-          name: type,
-          projectCount: 1,
-          budget: project.budget || 0,
-          actual: actualSpent,
-          remaining: (project.budget || 0) - actualSpent,
-        });
-      }
-    });
-
-    return Array.from(typesMap.values()).sort((a, b) => b.budget - a.budget);
-  }, [projects, filteredExpenses]);
 
   // إحصائيات حالة المشاريع
   const projectStatusStats = useMemo(() => {
@@ -365,9 +325,8 @@ export default function StatisticsPage() {
       categoriesCount: categories.length,
       projectItemsCount: projectItems.length,
       paymentMethodsCount: paymentMethods.length,
-      projectTypesCount: projectTypes.length,
     };
-  }, [expenseCount, totalActual, totalBudget, projects.length, categories.length, projectItems.length, paymentMethods.length, projectTypes.length]);
+  }, [expenseCount, totalActual, totalBudget, projects.length, categories.length, projectItems.length, paymentMethods.length]);
 
   // Export to CSV
   const exportToCSV = () => {
@@ -551,7 +510,7 @@ export default function StatisticsPage() {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Projects */}
         <Card className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <div className="flex items-center justify-between">
@@ -601,6 +560,19 @@ export default function StatisticsPage() {
             <FileText className="h-12 w-12 text-orange-200" />
           </div>
         </Card>
+
+        {/* Expected Profit */}
+        <Card className="p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-100 text-sm">الربح المتوقع</p>
+              <h3 className="text-2xl font-bold mt-2">
+                {(totalBudget - totalExpected).toLocaleString()} ر.س
+              </h3>
+            </div>
+            <TrendingUp className="h-12 w-12 text-emerald-200" />
+          </div>
+        </Card>
       </div>
 
       {/* إحصائيات شاملة إضافية */}
@@ -645,11 +617,11 @@ export default function StatisticsPage() {
           </div>
         </Card>
 
-        {/* عدد عناصر المشاريع */}
+        {/* عدد تصنيفات المشاريع */}
         <Card className="p-6 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-teal-100 text-sm">عناصر المشاريع</p>
+              <p className="text-teal-100 text-sm">تصنيف المشاريع</p>
               <h3 className="text-3xl font-bold mt-2">{generalStats.projectItemsCount}</h3>
             </div>
             <Layers className="h-12 w-12 text-teal-200" />
@@ -726,126 +698,12 @@ export default function StatisticsPage() {
         </div>
       </Card>
 
-      {/* إحصائيات أنواع المشاريع */}
-      {projectTypesStats.length > 0 && (
-        <Card className="p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Layers className="h-4 w-4 sm:h-5 sm:w-5" />
-            إحصائيات أنواع المشاريع
-          </h3>
-          
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النوع</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">عدد المشاريع</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الميزانية الإجمالية</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">الإنفاق الفعلي</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">المتبقي</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">نسبة الإنفاق</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projectTypesStats.map((type, idx) => (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{type.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{type.projectCount}</td>
-                    <td className="px-4 py-3 text-gray-900 font-medium">
-                      {type.budget.toLocaleString()} ر.س
-                    </td>
-                    <td className="px-4 py-3 text-gray-900">
-                      {type.actual.toLocaleString()} ر.س
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={type.remaining >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                        {type.remaining.toLocaleString()} ر.س
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${
-                              type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'bg-red-600' :
-                              type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'bg-orange-600' :
-                              'bg-green-600'
-                            }`}
-                            style={{ width: `${Math.min(type.budget > 0 ? (type.actual / type.budget) * 100 : 0, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-gray-700 font-medium min-w-[50px]">
-                          {type.budget > 0 ? ((type.actual / type.budget) * 100).toFixed(1) : 0}%
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="md:hidden space-y-3">
-            {projectTypesStats.map((type, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-bold text-gray-900">{type.name}</h4>
-                  <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded-full">
-                    {type.projectCount} مشروع
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">الميزانية</p>
-                    <p className="text-sm font-bold text-gray-900">{type.budget.toLocaleString()} ر.س</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">الإنفاق</p>
-                    <p className="text-sm font-bold text-gray-900">{type.actual.toLocaleString()} ر.س</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">المتبقي</p>
-                    <p className={`text-sm font-bold ${type.remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {type.remaining.toLocaleString()} ر.س
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">النسبة</p>
-                    <p className={`text-sm font-bold ${
-                      type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'text-red-600' :
-                      type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'text-orange-600' :
-                      'text-green-600'
-                    }`}>
-                      {type.budget > 0 ? ((type.actual / type.budget) * 100).toFixed(1) : 0}%
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      type.budget > 0 && (type.actual / type.budget) * 100 > 100 ? 'bg-red-600' :
-                      type.budget > 0 && (type.actual / type.budget) * 100 > 80 ? 'bg-orange-600' :
-                      'bg-green-600'
-                    }`}
-                    style={{ width: `${Math.min(type.budget > 0 ? (type.actual / type.budget) * 100 : 0, 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* إحصائيات عناصر المشاريع */}
+      {/* إحصائيات تصنيف المشاريع */}
       {projectItemsStats.length > 0 && (
         <Card className="p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Package className="h-4 w-4 sm:h-5 sm:w-5" />
-            أكثر عناصر المشاريع استخداماً
+            أكثر تصنيفات المشاريع استخداماً
           </h3>
           
           {/* Desktop Table */}
@@ -1318,43 +1176,64 @@ export default function StatisticsPage() {
         </h3>
         
         {/* Desktop Table */}
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto shadow-lg rounded-xl border border-gray-200">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">التاريخ</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">المشروع</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">الكود</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">الفئة</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">البند</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">الوصف</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">الكمية</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">المبلغ</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">الإجمالي</th>
+              <tr className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                <th className="px-4 py-3 text-right font-bold text-gray-800">📅 التاريخ</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">🎯 المشروع</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">🔢 الكود</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">🏷️ الفئة</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">📝 الوصف</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">📋 التفاصيل</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-800">🔢 الكمية</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">💵 سعر الوحدة</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">💳 الدفع</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">📊 الضريبة</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">💰 المبلغ</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-800">💎 الإجمالي</th>
               </tr>
             </thead>
-            <tbody>
-              {expensesDetailsData.slice(0, 50).map((expense) => (
-                <tr key={expense.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-600">{expense.date}</td>
-                  <td className="px-4 py-3 font-medium">{expense.project}</td>
-                  <td className="px-4 py-3 text-gray-600">{expense.projectCode}</td>
-                  <td className="px-4 py-3 text-gray-700">{expense.category}</td>
-                  <td className="px-4 py-3 text-gray-700">{expense.item}</td>
-                  <td className="px-4 py-3 text-gray-600 max-w-xs truncate">
-                    {expense.description}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 text-center">{expense.quantity}</td>
-                  <td className="px-4 py-3 text-gray-900">{expense.amount.toLocaleString()} ر.س</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">
-                    {expense.total.toLocaleString()} ر.س
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-gray-100">
+              {expensesDetailsData.slice(0, 50).map((expense) => {
+                const fullExpense = filteredExpenses.find(e => e.id === expense.id);
+                return (
+                  <tr key={expense.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">{expense.date}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">{expense.project}</td>
+                    <td className="px-4 py-3 text-gray-600">{expense.projectCode}</td>
+                    <td className="px-4 py-3 text-gray-700">{expense.category}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-xs">
+                      <div className="line-clamp-2" title={expense.description}>
+                        {expense.description || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 max-w-xs">
+                      <div className="line-clamp-2 text-sm" title={fullExpense?.details}>
+                        {fullExpense?.details || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 text-center font-medium whitespace-nowrap">
+                      {expense.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
+                      {fullExpense?.unit_price ? `${fullExpense.unit_price.toLocaleString()} ر.س` : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{fullExpense?.payment_method || '-'}</td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                      {fullExpense?.tax_rate ? `${fullExpense.tax_rate}% (${fullExpense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 font-medium whitespace-nowrap">{expense.amount.toLocaleString()} ر.س</td>
+                    <td className="px-4 py-3 text-green-700 font-bold text-lg whitespace-nowrap">
+                      {expense.total.toLocaleString()} ر.س
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {expensesDetailsData.length > 50 && (
-            <div className="mt-4 text-center text-gray-600 text-sm">
+            <div className="mt-4 text-center text-gray-600 text-sm bg-gray-50 p-3 rounded">
               عرض 50 من {expensesDetailsData.length} مصروف. استخدم التصدير CSV لعرض جميع البيانات.
             </div>
           )}
@@ -1362,38 +1241,87 @@ export default function StatisticsPage() {
 
         {/* Mobile Cards */}
         <div className="lg:hidden space-y-3">
-          {expensesDetailsData.slice(0, 20).map((expense) => (
-            <div key={expense.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h4 className="font-bold text-gray-900 text-sm mb-1">{expense.project}</h4>
-                  <p className="text-xs text-gray-600">{expense.category} • {expense.item}</p>
+          {expensesDetailsData.slice(0, 20).map((expense) => {
+            const fullExpense = filteredExpenses.find(e => e.id === expense.id);
+            return (
+              <div key={expense.id} className="bg-white rounded-xl p-4 shadow-md border-r-4 border-blue-500">
+                <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-100">
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 text-base mb-1">{expense.project}</h4>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      📅 {expense.date} • 🔢 {expense.projectCode}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg px-3 py-2 mr-2">
+                    <span className="text-lg font-extrabold text-green-700 whitespace-nowrap">
+                      {expense.total.toLocaleString()} ر.س
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-green-600 whitespace-nowrap mr-2">
-                  {expense.total.toLocaleString()} ر.س
-                </span>
-              </div>
 
-              <div className="bg-white bg-opacity-60 rounded p-2 mb-2">
-                <p className="text-xs text-gray-600 line-clamp-2">{expense.description || 'لا يوجد وصف'}</p>
-              </div>
+                {/* Description */}
+                {expense.description && (
+                  <div className="bg-blue-50 rounded-lg p-3 mb-3 border border-blue-100">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">📝 الوصف:</p>
+                    <p className="text-sm text-gray-700">{expense.description}</p>
+                  </div>
+                )}
 
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div>
-                  <p className="text-gray-600 mb-1">التاريخ</p>
-                  <p className="font-medium text-gray-900">{expense.date}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 mb-1">الكمية</p>
-                  <p className="font-medium text-gray-900">{expense.quantity}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 mb-1">السعر</p>
-                  <p className="font-medium text-gray-900">{expense.amount.toLocaleString()} ر.س</p>
+                {/* Details */}
+                {fullExpense?.details && (
+                  <div className="bg-indigo-50 rounded-lg p-3 mb-3 border border-indigo-100">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">📋 التفاصيل:</p>
+                    <p className="text-sm text-gray-700">{fullExpense.details}</p>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {fullExpense?.notes && (
+                  <div className="bg-amber-50 rounded-lg p-3 mb-3 border border-amber-100">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">📝 ملاحظات:</p>
+                    <p className="text-sm text-gray-700">{fullExpense.notes}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <p className="text-xs text-gray-500 mb-1">🏷️ الفئة</p>
+                    <p className="text-sm font-semibold text-gray-900">{expense.category}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <p className="text-xs text-gray-500 mb-1">🔢 الكمية</p>
+                    <p className="text-sm font-semibold text-gray-900">{expense.quantity}</p>
+                  </div>
+                  {fullExpense?.unit_price && (
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-500 mb-1">💵 سعر الوحدة</p>
+                      <p className="text-sm font-semibold text-gray-700">
+                        {fullExpense.unit_price.toLocaleString()} ر.س
+                      </p>
+                    </div>
+                  )}
+                  {fullExpense?.payment_method && (
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-500 mb-1">💳 الدفع</p>
+                      <p className="text-sm font-semibold text-gray-900">{fullExpense.payment_method}</p>
+                    </div>
+                  )}
+                  {fullExpense?.tax_rate && fullExpense.tax_rate > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xs text-gray-500 mb-1">📊 الضريبة</p>
+                      <p className="text-sm font-semibold text-gray-700">
+                        {fullExpense.tax_rate}% ({(fullExpense.tax_amount || 0).toLocaleString()} ر.س)
+                      </p>
+                    </div>
+                  )}
+                  <div className="bg-blue-50 rounded-lg p-2">
+                    <p className="text-xs text-gray-500 mb-1">💰 المبلغ</p>
+                    <p className="text-sm font-bold text-blue-700">{expense.amount.toLocaleString()} ر.س</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {expensesDetailsData.length > 20 && (
             <div className="text-center py-3 text-sm text-gray-600 bg-gray-50 rounded-lg border border-gray-200">

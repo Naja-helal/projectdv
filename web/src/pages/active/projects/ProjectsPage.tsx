@@ -189,7 +189,7 @@ export default function ProjectsPage() {
 
       {/* إحصائيات مفصلة */}
       {statistics && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 sm:gap-3">
           <Card className="p-3 sm:p-4">
             <div className="text-center">
               <p className="text-xs text-gray-500 mb-1">إجمالي</p>
@@ -244,6 +244,15 @@ export default function ProjectsPage() {
               <p className="text-xs text-gray-500 mb-1">إنفاق فعلي</p>
               <p className="text-xl font-bold text-purple-600">{(statistics.totalSpent / 1000).toFixed(0)}K</p>
               <p className="text-xs text-gray-400">ر.س</p>
+            </div>
+          </Card>
+          <Card className="p-4 bg-emerald-50">
+            <div className="text-center">
+              <p className="text-xs text-emerald-600 mb-1">ربح متوقع</p>
+              <p className="text-xl font-bold text-emerald-700">
+                {(statistics.totalBudget - statistics.totalExpectedSpending).toLocaleString()}
+              </p>
+              <p className="text-xs text-emerald-500">ر.س</p>
             </div>
           </Card>
         </div>
@@ -396,7 +405,7 @@ export default function ProjectsPage() {
                       <p className="text-gray-600 mb-3 text-xs sm:text-sm">{project.description}</p>
                     )}
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-3">
                       <div>
                         <p className="text-xs text-gray-500">قيمة العقد</p>
                         <p className="text-base sm:text-lg font-bold text-blue-600">
@@ -425,6 +434,12 @@ export default function ProjectsPage() {
                         <p className="text-xs text-gray-500">نسبة الإنجاز</p>
                         <p className="text-base sm:text-lg font-bold text-gray-900">
                           {completionPercentage.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">الربح المتوقع</p>
+                        <p className="text-base sm:text-lg font-bold text-emerald-600">
+                          {((project.budget || 0) - (project.expected_spending || 0)).toLocaleString()} ر.س
                         </p>
                       </div>
                     </div>

@@ -17,9 +17,9 @@ const mainNavigation = [
 
 const settingsNavigation = [
   { name: 'الفئات', href: '/categories', icon: '🏷️' },
-  { name: 'عناصر المشاريع', href: '/project-items', icon: '📦' },
+  { name: 'تصنيف المشاريع', href: '/project-items', icon: '📦' },
   { name: 'طرق الدفع', href: '/payment-methods', icon: '💳' },
-  { name: 'أنواع المشاريع', href: '/project-types', icon: '📂' },
+  { name: 'الوحدات', href: '/units', icon: '📏' },
 ]
 
 export default function Layout({ children }: LayoutProps) {
