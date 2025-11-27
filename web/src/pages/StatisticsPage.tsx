@@ -599,7 +599,7 @@ export default function StatisticsPage() {
             <div>
               <p className="text-pink-100 text-sm">متوسط قيمة المصروف</p>
               <h3 className="text-2xl font-bold mt-2">
-                {generalStats.avgExpenseAmount.toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+                {generalStats.avgExpenseAmount.toLocaleString()} ر.س
               </h3>
             </div>
             <BarChart3 className="h-12 w-12 text-pink-200" />
@@ -723,7 +723,7 @@ export default function StatisticsPage() {
                   <tr key={idx} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3 text-gray-900 font-medium">
-                      {item.count.toLocaleString('ar-SA', { maximumFractionDigits: 2 })}
+                      {item.count.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{item.unit || '-'}</td>
                     <td className="px-4 py-3 text-gray-900 font-medium">
@@ -763,7 +763,7 @@ export default function StatisticsPage() {
                   <div>
                     <p className="text-xs text-gray-600 mb-1">الكمية</p>
                     <p className="text-sm font-bold text-indigo-900">
-                      {item.count.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} {item.unit || ''}
+                      {item.count.toLocaleString()} {item.unit || ''}
                     </p>
                   </div>
                   <div>
@@ -847,7 +847,7 @@ export default function StatisticsPage() {
                       {month.total.toLocaleString()} ر.س
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {(month.total / month.count).toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+                      {(month.total / month.count).toLocaleString()} ر.س
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -887,7 +887,7 @@ export default function StatisticsPage() {
                   <div>
                     <p className="text-xs text-gray-600 mb-1">متوسط المصروف</p>
                     <p className="text-sm font-bold text-purple-900">
-                      {(month.total / month.count).toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س
+                      {(month.total / month.count).toLocaleString()} ر.س
                     </p>
                   </div>
                 </div>

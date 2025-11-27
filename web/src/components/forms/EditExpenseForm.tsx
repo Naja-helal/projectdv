@@ -110,7 +110,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
         : expense.date
       setValue('date', dateValue)
       
-      setValue('paymentMethod', expense.payment_method || '')
+      setValue('paymentMethod', expense.payment_method_id ? String(expense.payment_method_id) : '')
       setValue('description', expense.description || '')
       setValue('details', expense.details || '')
       setValue('notes', expense.notes || '')
@@ -146,7 +146,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
       amount: !data.useQuantity ? parseFloat(data.amount) : parseFloat(data.quantity) * parseFloat(data.unit_price),
       taxRate: parseFloat(data.taxRate),
       date: new Date(data.date).getTime(),
-      paymentMethod: data.paymentMethod || undefined,
+      paymentMethodId: data.paymentMethod ? parseInt(data.paymentMethod) : undefined,
       description: data.description || undefined,
       details: data.details || undefined,
       notes: data.notes || undefined,
@@ -444,7 +444,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               >
                 <option value="">اختر طريقة الدفع</option>
                 {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.name}>
+                  <option key={method.id} value={method.id}>
                     {method.icon} {method.name}
                   </option>
                 ))}

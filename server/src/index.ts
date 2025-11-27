@@ -93,6 +93,7 @@ try {
   const hasDescription = columns.some((col) => col.name === 'description');
   const hasDetails = columns.some((col) => col.name === 'details');
   const hasUnitId = columns.some((col) => col.name === 'unit_id');
+  const hasPaymentMethodId = columns.some((col) => col.name === 'payment_method_id');
   
   if (!hasDescription) {
     console.log('➕ إضافة عمود description...');
@@ -112,7 +113,13 @@ try {
     console.log('✅ تم إضافة عمود unit_id');
   }
   
-  if (!hasDescription || !hasDetails || !hasUnitId || !hasUnitsTable) {
+  if (!hasPaymentMethodId) {
+    console.log('➕ إضافة عمود payment_method_id...');
+    db.exec('ALTER TABLE expenses ADD COLUMN payment_method_id INTEGER REFERENCES payment_methods(id)');
+    console.log('✅ تم إضافة عمود payment_method_id');
+  }
+  
+  if (!hasDescription || !hasDetails || !hasUnitId || !hasPaymentMethodId || !hasUnitsTable) {
     console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
   }
 
@@ -486,13 +493,16 @@ app.get("/api/expenses", (req, res) => {
         c.color AS category_color,
         c.icon AS category_icon,
         u.name AS unit_name,
+        pm.name AS payment_method,
         p.name AS project_name,
         p.code AS project_code,
         p.color AS project_color,
-        pi.name AS project_item_name
+        pi.name AS project_item_name,
+        COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
       FROM expenses e
       LEFT JOIN categories c ON c.id = e.category_id
       LEFT JOIN units u ON u.id = e.unit_id
+      LEFT JOIN payment_methods pm ON pm.id = e.payment_method_id
       LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN project_items pi ON pi.id = e.project_item_id
       ${where.length ? "WHERE " + where.join(" AND ") : ""}
@@ -537,6 +547,13 @@ app.get("/api/expenses", (req, res) => {
       });
     }
     
+    console.log(`\n📋 جلب ${rows.length} مصروف - أول مصروف:`, rows[0] ? {
+      id: rows[0].id,
+      description: rows[0].description,
+      payment_method_id: rows[0].payment_method_id,
+      payment_method: rows[0].payment_method
+    } : 'لا يوجد');
+    
     res.json(rows);
   } catch (error) {
     console.error("خطأ في جلب المصروفات:", error);
@@ -546,14 +563,18 @@ app.get("/api/expenses", (req, res) => {
 
 app.post("/api/expenses", (req, res) => {
   try {
+    console.log("\n🔵 POST /api/expenses - البيانات المستلمة:", JSON.stringify(req.body, null, 2));
+    
     const {
       categoryId, projectId, projectItemId,
       quantity = 1, unit_price, unit_id,
       amount, taxRate = 0, date,
-      paymentMethod, 
+      paymentMethodId, 
       description, details, notes, 
       extra, customFields
     } = req.body;
+
+    console.log("💳 paymentMethodId المستلم:", paymentMethodId, "نوعه:", typeof paymentMethodId);
 
     // التحقق من البيانات المطلوبة
     if (!categoryId || !date) {
@@ -586,9 +607,9 @@ app.post("/api/expenses", (req, res) => {
           (category_id, project_id, project_item_id, 
            quantity, unit_price, unit_id, amount, 
            tax_rate, tax_amount, total_amount,
-           date, 
+           payment_method_id, date, 
            description, details, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
@@ -601,6 +622,7 @@ app.post("/api/expenses", (req, res) => {
         taxRate, 
         taxAmount, 
         totalAmount,
+        paymentMethodId || null,
         date, 
         description || null,
         details || null,
@@ -613,9 +635,9 @@ app.post("/api/expenses", (req, res) => {
           (category_id, project_id, project_item_id, 
            quantity, unit_price, unit_id, amount, 
            tax_rate, tax_amount, total_amount,
-           date, 
+           payment_method_id, date, 
            notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
@@ -628,12 +650,16 @@ app.post("/api/expenses", (req, res) => {
         taxRate, 
         taxAmount, 
         totalAmount,
+        paymentMethodId || null,
         date, 
         notes || null
       ];
     }
     
     const info = stmt.run(...params);
+
+    console.log("✅ تم إدراج المصروف برقم:", info.lastInsertRowid);
+    console.log("📊 المعاملات المرسلة:", params);
 
     const expenseId = info.lastInsertRowid;
 
@@ -696,7 +722,7 @@ app.patch("/api/expenses/:id", (req, res) => {
         category_id=?, project_id=?, project_item_id=?,
         quantity=?, unit_price=?, unit_id=?,
         amount=?, tax_rate=?, tax_amount=?, total_amount=?,
-        date=?, 
+        payment_method_id=?, date=?, 
         description=?, details=?, notes=?,
         updated_at=strftime('%s','now')
       WHERE id=?
@@ -713,6 +739,7 @@ app.patch("/api/expenses/:id", (req, res) => {
       data.taxRate || 0, 
       taxAmount, 
       totalAmount,
+      data.paymentMethodId || null,
       dateValue, 
       data.description || null,
       data.details || null,
@@ -824,26 +851,77 @@ app.get("/api/projects/:id", authenticateAdmin, (req, res) => {
     }
     
     // جلب المصروفات المرتبطة بالمشروع
-    const expenses = db.prepare(`
-      SELECT 
-        e.*,
-        c.name as category_name,
-        c.color as category_color,
-        pi.name as item_name
-      FROM expenses e
-      LEFT JOIN categories c ON e.category_id = c.id
-      LEFT JOIN project_items pi ON e.project_item_id = pi.id
-      WHERE e.project_id = ?
-      ORDER BY e.date DESC
-    `).all(id);
+    let expenses = [];
+    try {
+      // فحص الجداول والأعمدة المتاحة
+      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
+      const hasPaymentMethods = tables.some((t: { name: string }) => t.name === 'payment_methods');
+      const hasUnits = tables.some((t: { name: string }) => t.name === 'units');
+      
+      // بناء الاستعلام بناءً على الجداول المتاحة
+      let query = `
+        SELECT 
+          e.*,
+          c.name as category_name,
+          c.color as category_color,
+          pi.name as item_name,
+          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
+      `;
+      
+      if (hasPaymentMethods) {
+        query += `, pm.name as payment_method`;
+      }
+      
+      if (hasUnits) {
+        query += `, u.name as unit_name`;
+      }
+      
+      query += `
+        FROM expenses e
+        LEFT JOIN categories c ON e.category_id = c.id
+        LEFT JOIN project_items pi ON e.project_item_id = pi.id
+      `;
+      
+      if (hasPaymentMethods) {
+        query += ` LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id`;
+      }
+      
+      if (hasUnits) {
+        query += ` LEFT JOIN units u ON e.unit_id = u.id`;
+      }
+      
+      query += `
+        WHERE e.project_id = ?
+        ORDER BY e.date DESC
+      `;
+      
+      expenses = db.prepare(query).all(id);
+    } catch (expError) {
+      console.error("خطأ في جلب المصروفات:", expError);
+      // في حالة الخطأ، نجلب المصروفات بدون الـ JOINs الإضافية
+      expenses = db.prepare(`
+        SELECT 
+          e.*,
+          c.name as category_name,
+          c.color as category_color,
+          pi.name as item_name,
+          COALESCE(e.amount + COALESCE(e.tax_amount, 0), e.amount) as total_amount
+        FROM expenses e
+        LEFT JOIN categories c ON e.category_id = c.id
+        LEFT JOIN project_items pi ON e.project_item_id = pi.id
+        WHERE e.project_id = ?
+        ORDER BY e.date DESC
+      `).all(id);
+    }
     
     res.json({
       ...project,
       expenses
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("خطأ في جلب تفاصيل المشروع:", error);
-    res.status(500).json({ error: "خطأ في جلب تفاصيل المشروع" });
+    console.error("Error details:", error.message);
+    res.status(500).json({ error: "خطأ في جلب تفاصيل المشروع", details: error.message });
   }
 });
 

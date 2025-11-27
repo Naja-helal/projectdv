@@ -105,6 +105,8 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
   })
 
   const onSubmit = (data: FormData) => {
+    console.log("🔵 ExpenseForm - بيانات الفورم:", data);
+    
     const expenseData: CreateExpenseData = {
       categoryId: parseInt(data.categoryId),
       projectId: data.projectId ? parseInt(data.projectId) : undefined,
@@ -115,11 +117,14 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
       amount: !data.useQuantity ? parseFloat(data.amount) : parseFloat(data.quantity) * parseFloat(data.unit_price),
       taxRate: parseFloat(data.taxRate),
       date: new Date(data.date).getTime(),
-      paymentMethod: data.paymentMethod || undefined,
+      paymentMethodId: data.paymentMethod ? parseInt(data.paymentMethod) : undefined,
       description: data.description || undefined,
       details: data.details || undefined,
       notes: data.notes || undefined,
     }
+
+    console.log("📤 البيانات المرسلة للسيرفر:", expenseData);
+    console.log("💳 paymentMethodId:", expenseData.paymentMethodId);
 
     createMutation.mutate(expenseData)
   }
@@ -411,7 +416,7 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
               >
                 <option value="">اختر طريقة الدفع</option>
                 {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.name}>
+                  <option key={method.id} value={method.id}>
                     {method.icon} {method.name}
                   </option>
                 ))}

@@ -98,6 +98,7 @@ export interface Expense {
   tax_amount: number
   total_amount: number
   date: number
+  payment_method_id?: number
   payment_method?: string
   description?: string
   details?: string
@@ -156,7 +157,7 @@ export interface CreateExpenseData {
   amount: number
   taxRate?: number
   date: number
-  paymentMethod?: string
+  paymentMethodId?: number
   description?: string
   details?: string
   notes?: string

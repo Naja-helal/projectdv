@@ -18,6 +18,8 @@ export default function Expenses() {
   const [filters, setFilters] = useState<ExpenseFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedExpenses, setSelectedExpenses] = useState<number[]>([])
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1)
   
   const queryClient = useQueryClient()
 
@@ -111,10 +113,16 @@ export default function Expenses() {
     setSearchTerm('')
   }
 
+  // حساب الصفحات
+  const totalPages = Math.ceil(expenses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const displayedExpenses = expenses.slice(startIndex, endIndex)
+
   // حساب الإحصائيات
   const stats = {
     total: expenses.length,
-    totalAmount: expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    totalAmount: expenses.reduce((sum, expense) => sum + (expense.total_amount || expense.amount), 0),
     byCategory: expenses.reduce((acc, expense) => {
       const categoryName = expense.category_name || 'غير محدد'
       acc[categoryName] = (acc[categoryName] || 0) + 1
@@ -304,12 +312,12 @@ export default function Expenses() {
       ) : (
         <>
           {/* عرض الجدول على الشاشات الكبيرة */}
-          <div className="hidden md:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="hidden lg:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <table className="w-full text-sm">
+                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                   <tr>
-                    <th className="px-4 py-4 text-right">
+                    <th className="px-3 py-4 text-right">
                       <input
                         type="checkbox"
                         checked={selectedExpenses.length === expenses.length && expenses.length > 0}
@@ -317,24 +325,36 @@ export default function Expenses() {
                         className="w-5 h-5 rounded border-gray-300"
                       />
                     </th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">التاريخ</th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">الوصف</th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">الفئة</th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">المشروع</th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">التفاصيل الكمية</th>
-                    <th className="px-4 py-4 text-right text-sm font-bold text-gray-900">المبلغ</th>
-                    <th className="px-4 py-4 text-center text-sm font-bold text-gray-900">الإجراءات</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📅 التاريخ</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📝 الوصف</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📋 التفاصيل</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">🏷️ الفئة</th>
+                    <th className="px-3 py-4 text-center text-sm font-bold text-gray-800">🔢 الكمية</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">💵 سعر الوحدة</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">💳 الدفع</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📊 الضريبة</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">💰 المبلغ</th>
+                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📁 المشروع</th>
+                    <th className="px-3 py-4 text-center text-sm font-bold text-gray-800">⚙️ الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {expenses.map((expense) => (
+                  {displayedExpenses.map((expense) => {
+                    console.log("📋 عرض المصروف:", {
+                      id: expense.id,
+                      description: expense.description,
+                      payment_method_id: expense.payment_method_id,
+                      payment_method: expense.payment_method
+                    });
+                    
+                    return (
                     <tr 
                       key={expense.id} 
-                      className={`hover:bg-gray-50 transition-colors ${
-                        selectedExpenses.includes(expense.id) ? 'bg-blue-50' : ''
+                      className={`hover:bg-blue-50 transition-colors duration-150 ${
+                        selectedExpenses.includes(expense.id) ? 'bg-blue-100' : ''
                       }`}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4">
                         <input
                           type="checkbox"
                           checked={selectedExpenses.includes(expense.id)}
@@ -342,93 +362,139 @@ export default function Expenses() {
                           className="w-5 h-5 rounded border-gray-300"
                         />
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        {format(new Date(expense.date), 'dd MMM yyyy', { locale: ar })}
+                      <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
+                        {format(new Date(expense.date), 'dd/MM/yyyy', { locale: ar })}
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm font-medium text-gray-900">{expense.description}</div>
-                        {expense.details && (
-                          <div className="text-xs text-gray-500 mt-1">{expense.details}</div>
-                        )}
+                      <td className="px-3 py-4 font-semibold text-gray-900 min-w-[150px]">
+                        {expense.description || '-'}
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <td className="px-3 py-4 text-gray-600 max-w-xs">
+                        <div className="line-clamp-2 text-sm" title={expense.details}>
+                          {expense.details || '-'}
+                        </div>
+                      </td>
+                      <td className="px-3 py-4">
+                        <span 
+                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
+                          style={{ backgroundColor: expense.category_color || '#6b7280', color: '#fff' }}
+                        >
                           {expense.category_name}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4 text-gray-700 text-center font-medium whitespace-nowrap">
+                        {expense.quantity ? `${expense.quantity} ${expense.unit_name || ''}` : '-'}
+                      </td>
+                      <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
+                        {expense.unit_price ? `${expense.unit_price.toLocaleString()} ر.س` : '-'}
+                      </td>
+                      <td className="px-3 py-4 text-gray-700">
+                        {expense.payment_method || '-'}
+                      </td>
+                      <td className="px-3 py-4 text-gray-700 whitespace-nowrap">
+                        {expense.tax_rate ? `${expense.tax_rate}% (${expense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
+                      </td>
+                      <td className="px-3 py-4 font-bold text-lg text-green-700 whitespace-nowrap">
+                        {(expense.total_amount || expense.amount).toLocaleString()} ر.س
+                      </td>
+                      <td className="px-3 py-4">
                         {expense.project_name ? (
                           <div className="text-sm">
                             <div className="flex items-center gap-2 font-medium text-gray-900">
                               <FolderOpen className="w-4 h-4" style={{ color: expense.project_color || '#3b82f6' }} />
                               {expense.project_name}
-                              {expense.project_code && (
-                                <span className="text-xs text-gray-500">({expense.project_code})</span>
-                              )}
                             </div>
                             {expense.project_item_name && (
-                              <div className="text-xs text-gray-500 mt-1 mr-6">{expense.project_item_name}</div>
+                              <div className="text-xs text-gray-500 mt-1">{expense.project_item_name}</div>
                             )}
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-4">
-                        {expense.quantity && expense.unit_price ? (
-                          <div className="text-xs">
-                            <div className="text-gray-600">
-                              <span className="font-semibold">{expense.quantity}</span> {expense.unit_name || 'وحدة'}
-                            </div>
-                            <div className="text-gray-500">
-                              @ {expense.unit_price.toLocaleString()} ر.س
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">مبلغ مباشر</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm">
-                          <div className="font-bold text-gray-900">
-                            {expense.amount.toLocaleString()} ر.س
-                          </div>
-                          {expense.tax_amount > 0 && (
-                            <div className="text-xs text-gray-500">
-                              + {expense.tax_amount.toLocaleString()} ضريبة
-                            </div>
-                          )}
-                          {expense.total_amount !== expense.amount && (
-                            <div className="text-xs font-semibold text-blue-600">
-                              = {expense.total_amount.toLocaleString()} ر.س
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <div className="flex gap-1 justify-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                      <td className="px-3 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
                             onClick={() => handleEdit(expense)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="تعديل"
                           >
                             <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          </button>
+                          <button
                             onClick={() => handleDelete(expense)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="حذف"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+            
+            {/* نظام الصفحات وعرض الصفوف */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* عدد الصفوف في الصفحة */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">عرض:</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={40}>40</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-sm text-gray-600">
+                  عرض {startIndex + 1}-{Math.min(endIndex, expenses.length)} من {expenses.length}
+                </span>
+              </div>
+
+              {/* أزرار الصفحات */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  السابق
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  التالي
+                </button>
+              </div>
             </div>
           </div>
 
