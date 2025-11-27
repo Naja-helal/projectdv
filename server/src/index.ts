@@ -1284,21 +1284,27 @@ app.patch("/api/project-items/:id", authenticateAdmin, (req, res) => {
 app.delete("/api/project-items/:id", authenticateAdmin, (req, res) => {
   try {
     const id = +req.params.id;
+    console.log("\n🗑️ DELETE /api/project-items/:id - حذف تصنيف المشروع رقم:", id);
     
     // إزالة ارتباط المصروفات بالعنصر
-    db.prepare("UPDATE expenses SET project_item_id = NULL WHERE project_item_id = ?").run(id);
+    const updateResult = db.prepare("UPDATE expenses SET project_item_id = NULL WHERE project_item_id = ?").run(id);
+    console.log("📊 تم تحديث", updateResult.changes, "مصروف مرتبط");
     
     // حذف العنصر
     const result = db.prepare("DELETE FROM project_items WHERE id = ?").run(id);
+    console.log("✅ عدد الصفوف المحذوفة:", result.changes);
     
     if (result.changes === 0) {
+      console.log("⚠️ تصنيف المشروع غير موجود");
       return res.status(404).json({ error: "تصنيف المشروع غير موجود" });
     }
     
+    console.log("✅ تم حذف تصنيف المشروع بنجاح");
     res.json({ ok: true, success: true });
-  } catch (error) {
-    console.error("خطأ في حذف تصنيف المشروع:", error);
-    res.status(500).json({ error: "خطأ في حذف تصنيف المشروع" });
+  } catch (error: any) {
+    console.error("❌ خطأ في حذف تصنيف المشروع:", error);
+    console.error("تفاصيل الخطأ:", error.message);
+    res.status(500).json({ error: "خطأ في حذف تصنيف المشروع: " + error.message });
   }
 });
 
