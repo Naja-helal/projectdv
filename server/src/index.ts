@@ -191,24 +191,31 @@ try {
   if (hasProjectItemsTable) {
     const projectItemsColumns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
     const hasProjectIdInItems = projectItemsColumns.some((col) => col.name === 'project_id');
+    const hasIsActive = projectItemsColumns.some((col) => col.name === 'is_active');
     
-    if (!hasProjectIdInItems) {
-      console.log('⚠️ جدول project_items موجود لكن بدون عمود project_id - سيتم إعادة إنشائه...');
+    // إذا كان الجدول موجود لكن بدون الأعمدة المطلوبة، نعيد إنشائه
+    if (!hasProjectIdInItems || !hasIsActive) {
+      console.log('⚠️ جدول project_items يحتاج إعادة إنشاء لإضافة الأعمدة المطلوبة...');
       
       // تعطيل foreign keys مؤقتاً
       db.exec('PRAGMA foreign_keys = OFF');
       
-      // حذف الجدول القديم وإعادة إنشائه
+      // حذف الجدول القديم وإعادة إنشائه بجميع الأعمدة
       db.exec(`
         DROP TABLE IF EXISTS project_items;
         
         CREATE TABLE project_items (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          project_id INTEGER NOT NULL,
+          project_id INTEGER,
           name TEXT NOT NULL,
+          code TEXT,
           description TEXT,
-          budget REAL NOT NULL DEFAULT 0,
+          budget REAL DEFAULT 0,
           sort_order INTEGER DEFAULT 0,
+          color TEXT DEFAULT '#3b82f6',
+          icon TEXT DEFAULT '📋',
+          unit TEXT,
+          is_active INTEGER DEFAULT 1,
           created_at INTEGER DEFAULT (strftime('%s', 'now')),
           updated_at INTEGER DEFAULT (strftime('%s', 'now')),
           FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -1079,9 +1086,9 @@ app.post("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
 
     const stmt = db.prepare(`
       INSERT INTO project_items (
-        project_id, name, description, budget, sort_order
+        project_id, name, description, budget, sort_order, is_active
       ) 
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 1)
     `);
     
     const info = stmt.run(
@@ -1093,9 +1100,10 @@ app.post("/api/projects/:projectId/items", authenticateAdmin, (req, res) => {
     );
     
     res.json({ id: info.lastInsertRowid, success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("خطأ في إضافة تصنيف المشروع:", error);
-    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع" });
+    console.error("Error details:", error.message);
+    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع", details: error.message });
   }
 });
 
@@ -1332,15 +1340,22 @@ app.get("/api/stats", authenticateAdmin, (req, res) => {
 // جلب جميع عناصر المشروع
 app.get("/api/project-items", authenticateAdmin, (req, res) => {
   try {
-    const items = db.prepare(`
-      SELECT * FROM project_items 
-      WHERE is_active = 1 
-      ORDER BY name
-    `).all();
+    // فحص الأعمدة المتاحة في الجدول
+    const columns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
+    const hasIsActive = columns.some((col) => col.name === 'is_active');
+    
+    let query = 'SELECT * FROM project_items';
+    if (hasIsActive) {
+      query += ' WHERE is_active = 1';
+    }
+    query += ' ORDER BY name';
+    
+    const items = db.prepare(query).all();
     res.json(items);
-  } catch (error) {
+  } catch (error: any) {
     console.error("خطأ في جلب عناصر المشروع:", error);
-    res.status(500).json({ error: "خطأ في جلب عناصر المشروع" });
+    console.error("Error details:", error.message);
+    res.status(500).json({ error: "خطأ في جلب عناصر المشروع", details: error.message });
   }
 });
 
@@ -1369,17 +1384,18 @@ app.post("/api/project-items", authenticateAdmin, (req, res) => {
     const now = Date.now();
 
     const result = db.prepare(`
-      INSERT INTO project_items (name, code, description, color, icon, unit, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO project_items (name, code, description, color, icon, unit, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
     `).run(name, code || null, description || null, color || '#3b82f6', icon || '📦', unit || null, now, now);
 
     res.json({ 
       id: result.lastInsertRowid, 
       message: "تم إضافة تصنيف المشروع بنجاح" 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("خطأ في إضافة تصنيف المشروع:", error);
-    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع" });
+    console.error("Error details:", error.message);
+    res.status(500).json({ error: "خطأ في إضافة تصنيف المشروع", details: error.message });
   }
 });
 
