@@ -35,55 +35,187 @@ if (!fs.existsSync(dbDir)) {
 
 const db = new Database(dbPath);
 
-// تحديث schema تلقائياً عند بدء التشغيل
-try {
-  // ===== فحص وإضافة جدول الوحدات =====
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='units'").all() as Array<{ name: string }>;
-  const hasUnitsTable = tables.length > 0;
+// إنشاء الجداول الأساسية إذا لم تكن موجودة
+console.log('🔧 فحص الجداول الأساسية...');
+
+// إنشاء جدول الفئات
+db.exec(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT,
+    description TEXT,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now'))
+  )
+`);
+
+// إنشاء جدول العملاء
+db.exec(`
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    contact_person TEXT,
+    tax_number TEXT,
+    notes TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT DEFAULT '👤',
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now'))
+  )
+`);
+
+// إنشاء جدول الوحدات
+db.exec(`
+  CREATE TABLE IF NOT EXISTS units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    description TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT DEFAULT '📏',
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  )
+`);
+
+// إنشاء جدول طرق الدفع
+db.exec(`
+  CREATE TABLE IF NOT EXISTS payment_methods (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    description TEXT,
+    color TEXT DEFAULT '#10b981',
+    icon TEXT DEFAULT '💳',
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  )
+`);
+
+// إنشاء جدول تصنيفات المشاريع
+db.exec(`
+  CREATE TABLE IF NOT EXISTS project_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT DEFAULT '📁',
+    description TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+  )
+`);
+
+// إنشاء جدول المشاريع
+db.exec(`
+  CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    client_id INTEGER,
+    start_date INTEGER,
+    end_date INTEGER,
+    status TEXT DEFAULT 'active',
+    budget REAL,
+    description TEXT,
+    location TEXT,
+    project_item_id INTEGER,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE SET NULL,
+    FOREIGN KEY(project_item_id) REFERENCES project_items(id) ON DELETE SET NULL
+  )
+`);
+
+// إنشاء جدول المصروفات
+db.exec(`
+  CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    project_id INTEGER,
+    amount REAL NOT NULL,
+    date INTEGER NOT NULL,
+    notes TEXT,
+    description TEXT,
+    details TEXT,
+    quantity REAL,
+    unit_id INTEGER,
+    payment_method_id INTEGER,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL,
+    FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE SET NULL,
+    FOREIGN KEY(payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL
+  )
+`);
+
+// إنشاء جدول المصروفات المتوقعة
+db.exec(`
+  CREATE TABLE IF NOT EXISTS expected_expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    project_id INTEGER,
+    amount REAL NOT NULL,
+    date INTEGER NOT NULL,
+    notes TEXT,
+    description TEXT,
+    details TEXT,
+    quantity REAL,
+    unit_id INTEGER,
+    payment_method_id INTEGER,
+    created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+    FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL,
+    FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE SET NULL,
+    FOREIGN KEY(payment_method_id) REFERENCES payment_methods(id) ON DELETE SET NULL
+  )
+`);
+
+console.log('✅ تم التأكد من وجود الجداول الأساسية');
+
+// إضافة بيانات افتراضية للوحدات إذا كان الجدول فارغاً
+const unitsCount = db.prepare('SELECT COUNT(*) as count FROM units').get() as { count: number };
+if (unitsCount.count === 0) {
+  console.log('➕ إضافة الوحدات الافتراضية...');
+  const units = [
+    { name: 'قطعة', code: 'PCS', description: 'قطعة واحدة', color: '#3b82f6', icon: '📦' },
+    { name: 'كيس', code: 'BAG', description: 'كيس واحد', color: '#8b5cf6', icon: '🎒' },
+    { name: 'متر', code: 'M', description: 'متر واحد', color: '#10b981', icon: '📏' },
+    { name: 'متر مربع', code: 'M2', description: 'متر مربع واحد', color: '#06b6d4', icon: '⬛' },
+    { name: 'لتر', code: 'L', description: 'لتر واحد', color: '#0ea5e9', icon: '🥤' },
+    { name: 'كيلو', code: 'KG', description: 'كيلوجرام واحد', color: '#f59e0b', icon: '⚖️' },
+    { name: 'طن', code: 'TON', description: 'طن واحد', color: '#ef4444', icon: '🏋️' },
+    { name: 'كرتون', code: 'CTN', description: 'كرتون واحد', color: '#ec4899', icon: '📦' },
+    { name: 'صندوق', code: 'BOX', description: 'صندوق واحد', color: '#a855f7', icon: '🗃️' },
+    { name: 'علبة', code: 'PKG', description: 'علبة واحدة', color: '#14b8a6', icon: '📦' }
+  ];
   
-  if (!hasUnitsTable) {
-    console.log('📦 إنشاء جدول الوحدات...');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS units (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        code TEXT,
-        description TEXT,
-        color TEXT DEFAULT '#3b82f6',
-        icon TEXT DEFAULT '📏',
-        is_active INTEGER DEFAULT 1,
-        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-      )
-    `);
-    console.log('✅ تم إنشاء جدول الوحدات');
-    
-    // إضافة الوحدات الافتراضية
-    const units = [
-      { name: 'قطعة', code: 'PCS', description: 'قطعة واحدة', color: '#3b82f6', icon: '📦' },
-      { name: 'كيس', code: 'BAG', description: 'كيس واحد', color: '#8b5cf6', icon: '🎒' },
-      { name: 'متر', code: 'M', description: 'متر واحد', color: '#10b981', icon: '📏' },
-      { name: 'متر مربع', code: 'M2', description: 'متر مربع واحد', color: '#06b6d4', icon: '⬛' },
-      { name: 'لتر', code: 'L', description: 'لتر واحد', color: '#0ea5e9', icon: '🥤' },
-      { name: 'كيلو', code: 'KG', description: 'كيلوجرام واحد', color: '#f59e0b', icon: '⚖️' },
-      { name: 'طن', code: 'TON', description: 'طن واحد', color: '#ef4444', icon: '🏋️' },
-      { name: 'كرتون', code: 'CTN', description: 'كرتون واحد', color: '#ec4899', icon: '📦' },
-      { name: 'صندوق', code: 'BOX', description: 'صندوق واحد', color: '#a855f7', icon: '🗃️' },
-      { name: 'علبة', code: 'PKG', description: 'علبة واحدة', color: '#14b8a6', icon: '📦' }
-    ];
-    
-    const stmt = db.prepare(`
-      INSERT INTO units (name, code, description, color, icon)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    
-    for (const unit of units) {
-      stmt.run(unit.name, unit.code, unit.description, unit.color, unit.icon);
-    }
-    
-    console.log('✅ تم إضافة 10 وحدات افتراضية');
+  const stmt = db.prepare(`
+    INSERT INTO units (name, code, description, color, icon)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  
+  for (const unit of units) {
+    stmt.run(unit.name, unit.code, unit.description, unit.color, unit.icon);
   }
   
+  console.log('✅ تم إضافة 10 وحدات افتراضية');
+}
+
+// تحديث schema تلقائياً عند بدء التشغيل
+try {
   // ===== فحص وإضافة أعمدة جدول المصروفات =====
   const columns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
   const hasDescription = columns.some((col) => col.name === 'description');
@@ -115,7 +247,7 @@ try {
     console.log('✅ تم إضافة عمود payment_method_id');
   }
   
-  if (!hasDescription || !hasDetails || !hasUnitId || !hasPaymentMethodId || !hasUnitsTable) {
+  if (!hasDescription || !hasDetails || !hasUnitId || !hasPaymentMethodId) {
     console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
   }
 
