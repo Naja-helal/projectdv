@@ -34,6 +34,33 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
+// في الإنتاج: نسخ قاعدة البيانات من المشروع إلى Volume إذا لم تكن موجودة
+if (isProduction && !fs.existsSync(dbPath)) {
+  // في Railway: المشروع في /app والسيرفر في /app/server
+  const possiblePaths = [
+    path.join(__dirname, '../expenses.db'),  // من dist إلى server
+    '/app/server/expenses.db',               // مسار مباشر في Railway
+    path.join(process.cwd(), 'expenses.db'), // من root المشروع
+  ];
+  
+  let sourceDbPath = '';
+  for (const testPath of possiblePaths) {
+    if (fs.existsSync(testPath)) {
+      sourceDbPath = testPath;
+      break;
+    }
+  }
+  
+  if (sourceDbPath) {
+    console.log(`📋 نسخ قاعدة البيانات من ${sourceDbPath} إلى ${dbPath}`);
+    fs.copyFileSync(sourceDbPath, dbPath);
+    console.log('✅ تم نسخ قاعدة البيانات بنجاح');
+  } else {
+    console.log(`⚠️ قاعدة البيانات المصدر غير موجودة في أي من المسارات المحتملة`);
+    console.log('المسارات المفحوصة:', possiblePaths);
+  }
+}
+
 let db = new Database(dbPath);
 
 // فحص وجود قاعدة البيانات
@@ -2145,7 +2172,12 @@ app.get("/api/backup/download", authenticateAdmin, (req, res) => {
 });
 
 // رفع واستعادة نسخة احتياطية
-const uploadMiddleware = multer({ dest: 'uploads/' });
+// إنشاء مجلد uploads إذا لم يكن موجوداً
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+const uploadMiddleware = multer({ dest: uploadsDir });
 
 app.post("/api/backup/upload", authenticateAdmin, uploadMiddleware.single('backup'), (req: any, res: any) => {
   try {
