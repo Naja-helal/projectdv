@@ -12,9 +12,11 @@ import type {
   ProjectItem,
   PaymentMethod,
   Unit,
+  Client,
   CreateProjectData,
   CreateProjectItemData,
   CreatePaymentMethodData,
+  CreateClientData,
   Employee,
   MonthlySalary
 } from '@/types'
@@ -155,6 +157,44 @@ export const expenseApi = {
   },
 }
 
+// خدمات الإنفاق المتوقع (نسخة من المصروفات)
+export const expectedExpenseApi = {
+  // جلب الإنفاق المتوقع
+  getExpectedExpenses: (filters: ExpenseFilters = {}): Promise<Expense[]> => {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value))
+      }
+    })
+    
+    return apiRequest(`/expected-expenses?${params}`)
+  },
+
+  // إضافة إنفاق متوقع
+  createExpectedExpense: (data: CreateExpenseData): Promise<CreateExpenseResponse> => {
+    return apiRequest('/expected-expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // تحديث إنفاق متوقع
+  updateExpectedExpense: (id: number, data: Partial<CreateExpenseData>): Promise<{ ok: boolean; totalAmount: number; taxAmount: number }> => {
+    return apiRequest(`/expected-expenses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // حذف إنفاق متوقع
+  deleteExpectedExpense: (id: number): Promise<{ ok: boolean }> => {
+    return apiRequest(`/expected-expenses/${id}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
 // خدمات الفئات
 export const categoryApi = {
   // جلب الفئات
@@ -237,6 +277,37 @@ export const authAPI = {
   refresh: (): Promise<{ ok: boolean; token: string; message: string }> => {
     return apiRequest('/auth/refresh', {
       method: 'POST',
+    })
+  },
+}
+
+// خدمة العملاء
+export const clientApi = {
+  getClients: (): Promise<Client[]> => {
+    return apiRequest('/clients')
+  },
+  
+  getClient: (id: number): Promise<Client> => {
+    return apiRequest(`/clients/${id}`)
+  },
+  
+  createClient: (data: CreateClientData): Promise<CreateEntityResponse> => {
+    return apiRequest('/clients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+  
+  updateClient: (id: number, data: Partial<CreateClientData>): Promise<{ ok: boolean }> => {
+    return apiRequest(`/clients/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+  
+  deleteClient: (id: number): Promise<{ ok: boolean }> => {
+    return apiRequest(`/clients/${id}`, {
+      method: 'DELETE',
     })
   },
 }

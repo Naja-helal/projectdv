@@ -36,6 +36,26 @@ db.exec(`
   );
 `);
 
+// إنشاء جدول العملاء
+db.exec(`
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE,
+    phone TEXT,
+    email TEXT,
+    address TEXT,
+    contact_person TEXT,
+    tax_number TEXT,
+    notes TEXT,
+    color TEXT DEFAULT '#3b82f6',
+    icon TEXT DEFAULT '👤',
+    is_active INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT (strftime('%s','now')),
+    updated_at INTEGER DEFAULT (strftime('%s','now'))
+  );
+`);
+
 // إنشاء جدول المصروفات
 db.exec(`
   CREATE TABLE IF NOT EXISTS expenses (

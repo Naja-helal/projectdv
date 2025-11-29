@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { projectApi, projectItemApi } from '@/lib/api';
+import { projectApi, projectItemApi, clientApi } from '@/lib/api';
 import { Project, CreateProjectData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,11 +18,10 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const [formData, setFormData] = useState<CreateProjectData>({
     name: project?.name || '',
     code: project?.code || '',
-    type: project?.type || 'استراتيجية',
     project_item_id: project?.project_item_id || undefined,
+    client_id: project?.client_id || 1,
     description: project?.description || '',
     budget: project?.budget || 0,
-    expected_spending: project?.expected_spending || 0,
     start_date: project?.start_date || undefined,
     end_date: project?.end_date || undefined,
     status: project?.status || 'active',
@@ -35,6 +34,12 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const { data: projectItems = [] } = useQuery({
     queryKey: ['project-items'],
     queryFn: projectItemApi.getProjectItems,
+  });
+
+  // جلب العملاء
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: clientApi.getClients,
   });
 
   // إنشاء أو تحديث مشروع
@@ -114,6 +119,22 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
       
       {/* الحقول الأساسية */}
       <div className="space-y-5">
+        {/* العميل */}
+        <div className="space-y-3">
+          <Label htmlFor="client_id" className="text-base font-semibold">العميل *</Label>
+          <select
+            value={formData.client_id || 1}
+            onChange={(e) => setFormData({ ...formData, client_id: Number(e.target.value) })}
+            className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          >
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.icon ? `${client.icon} ` : ''}{client.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* اسم المشروع */}
         <div className="space-y-3">
           <Label htmlFor="name" className="text-base font-semibold">اسم المشروع *</Label>
@@ -159,56 +180,29 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           </div>
         </div>
 
-        {/* قيمة العقد والإنفاق المتوقع */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* قيمة العقد (الميزانية) */}
-          <div className="space-y-3">
-            <Label htmlFor="budget" className="text-base font-semibold">قيمة العقد (ر.س)</Label>
-            <Input
-              id="budget"
-              type="text"
-              inputMode="decimal"
-              min="0"
-              value={formData.budget}
-              onChange={(e) => {
-                // السماح فقط بالأرقام والنقطة العشرية
-                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                setFormData({ ...formData, budget: cleaned === '' ? 0 : cleaned as any });
-              }}
-              onBlur={(e) => {
-                // عند فقدان التركيز، تحويل القيمة لرقم
-                const val = parseFloat(e.target.value) || 0;
-                setFormData({ ...formData, budget: val });
-              }}
-              placeholder="0.00"
-              className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
-            />
-            {errors.budget && <p className="text-sm text-red-600 font-medium">{errors.budget}</p>}
-          </div>
-
-          {/* الإنفاق المتوقع */}
-          <div className="space-y-3">
-            <Label htmlFor="expected_spending" className="text-base font-semibold">الإنفاق المتوقع (ر.س)</Label>
-            <Input
-              id="expected_spending"
-              type="text"
-              inputMode="decimal"
-              min="0"
-              value={formData.expected_spending}
-              onChange={(e) => {
-                // السماح فقط بالأرقام والنقطة العشرية
-                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                setFormData({ ...formData, expected_spending: cleaned === '' ? 0 : cleaned as any });
-              }}
-              onBlur={(e) => {
-                // عند فقدان التركيز، تحويل القيمة لرقم
-                const val = parseFloat(e.target.value) || 0;
-                setFormData({ ...formData, expected_spending: val });
-              }}
-              placeholder="0.00"
-              className={`min-h-[48px] text-base border-2 rounded-xl ${errors.expected_spending ? 'border-red-500' : ''}`}
-            />
-          </div>
+        {/* قيمة العقد */}
+        <div className="space-y-3">
+          <Label htmlFor="budget" className="text-base font-semibold">قيمة العقد (ر.س)</Label>
+          <Input
+            id="budget"
+            type="text"
+            inputMode="decimal"
+            min="0"
+            value={formData.budget}
+            onChange={(e) => {
+              // السماح فقط بالأرقام والنقطة العشرية
+              const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+              setFormData({ ...formData, budget: cleaned === '' ? 0 : cleaned as any });
+            }}
+            onBlur={(e) => {
+              // عند فقدان التركيز، تحويل القيمة لرقم
+              const val = parseFloat(e.target.value) || 0;
+              setFormData({ ...formData, budget: val });
+            }}
+            placeholder="0.00"
+            className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
+          />
+          {errors.budget && <p className="text-sm text-red-600 font-medium">{errors.budget}</p>}
         </div>
 
         {/* الحالة */}

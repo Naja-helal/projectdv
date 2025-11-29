@@ -38,6 +38,31 @@ export interface Vendor {
   updated_at: number
 }
 
+// العملاء
+export interface Client {
+  id: number
+  name: string
+  code?: string
+  phone?: string
+  email?: string
+  address?: string
+  contact_person?: string
+  tax_number?: string
+  notes?: string
+  color?: string
+  icon?: string
+  is_active: boolean
+  created_at: number
+  updated_at: number
+  // إحصائيات (من API)
+  projects_count?: number
+  total_budget?: number
+  total_expected?: number
+  active_projects?: number
+  completed_projects?: number
+  projects?: Project[]
+}
+
 // نظام الرواتب الجديد
 export interface Employee {
   id: number
@@ -296,8 +321,10 @@ export interface Project {
   id: number
   name: string
   code?: string
-  type: string
   project_item_id?: number
+  project_item_name?: string
+  project_item_icon?: string
+  client_id?: number
   description?: string
   budget: number
   expected_spending?: number
@@ -312,6 +339,10 @@ export interface Project {
   actual_spent?: number
   completion_percentage?: number
   remaining_budget?: number
+  // بيانات العميل (من JOIN)
+  client_name?: string
+  client_color?: string
+  client_icon?: string
   // التفاصيل الموسعة
   items?: ProjectItem[]
   expenses?: any[]
@@ -365,8 +396,8 @@ export interface PaymentMethod {
 export interface CreateProjectData {
   name: string
   code?: string
-  type: string
   project_item_id?: number
+  client_id?: number
   description?: string
   budget: number
   expected_spending?: number
@@ -374,6 +405,19 @@ export interface CreateProjectData {
   end_date?: number
   status?: 'active' | 'completed' | 'on_hold' | 'cancelled'
   color?: string
+}
+
+export interface CreateClientData {
+  name: string
+  code?: string
+  phone?: string
+  email?: string
+  address?: string
+  contact_person?: string
+  tax_number?: string
+  notes?: string
+  color?: string
+  icon?: string
 }
 
 export interface CreateProjectItemData {

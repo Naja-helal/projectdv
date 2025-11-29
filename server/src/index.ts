@@ -17,24 +17,20 @@ if (process.env.NODE_ENV === 'production') {
 const app = express();
 const PORT = process.env.PORT || 5175;
 
-// إعداد قاعدة البيانات
-const dbPath = process.env.DB_PATH || path.join(__dirname, "../expenses.db");
+// إعداد قاعدة البيانات - استخدام /app/data للـ Volume في Railway
+const isProduction = process.env.NODE_ENV === 'production';
+const dbPath = isProduction 
+  ? '/app/data/expenses.db'  // مسار ثابت في Railway Volume
+  : process.env.DB_PATH || path.join(__dirname, "../expenses.db");
+
+console.log(`📂 مسار قاعدة البيانات: ${dbPath}`);
+console.log(`🌍 البيئة: ${isProduction ? 'الإنتاج' : 'التطوير'}`);
 
 // إنشاء المجلد إذا لم يكن موجوداً
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
-}
-
-// نسخ قاعدة البيانات الأولية في بيئة الإنتاج إذا لم تكن موجودة
-if (process.env.NODE_ENV === 'production' && !fs.existsSync(dbPath)) {
-  const sourceDb = path.join(__dirname, "../expenses-production.db");
-  if (fs.existsSync(sourceDb)) {
-    console.log(`📋 نسخ قاعدة البيانات الأولية من: ${sourceDb}`);
-    fs.copyFileSync(sourceDb, dbPath);
-    console.log(`✅ تم نسخ قاعدة البيانات إلى: ${dbPath}`);
-  }
 }
 
 const db = new Database(dbPath);
@@ -188,7 +184,8 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         code TEXT,
-        type TEXT DEFAULT 'استراتيجية',
+        project_item_id INTEGER,
+        client_id INTEGER DEFAULT 1,
         description TEXT,
         budget REAL DEFAULT 0,
         expected_spending REAL DEFAULT 0,
@@ -200,8 +197,8 @@ try {
         updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
       );
       
-      INSERT INTO projects_new (id, name, code, type, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at)
-      SELECT id, name, code, type, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at
+      INSERT INTO projects_new (id, name, code, project_item_id, client_id, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at)
+      SELECT id, name, code, project_item_id, client_id, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at
       FROM projects;
       
       DROP TABLE projects;
@@ -236,6 +233,93 @@ try {
     console.log('➕ إضافة عمود project_item_id...');
     db.exec('ALTER TABLE projects ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
     console.log('✅ تم إضافة عمود project_item_id');
+  }
+
+  // ===== فحص وإنشاء جدول الإنفاق المتوقع =====
+  const expectedExpensesTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='expected_expenses'").all() as Array<{ name: string }>;
+  const hasExpectedExpensesTable = expectedExpensesTables.length > 0;
+  
+  if (!hasExpectedExpensesTable) {
+    console.log('📦 إنشاء جدول الإنفاق المتوقع...');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS expected_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER NOT NULL,
+        project_id INTEGER,
+        project_item_id INTEGER,
+        quantity REAL DEFAULT 1,
+        unit_price REAL,
+        unit_id INTEGER,
+        amount REAL NOT NULL,
+        tax_rate REAL DEFAULT 0,
+        tax_amount REAL DEFAULT 0,
+        total_amount REAL,
+        payment_method_id INTEGER,
+        date INTEGER NOT NULL,
+        description TEXT,
+        details TEXT,
+        notes TEXT,
+        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+        FOREIGN KEY (category_id) REFERENCES categories(id),
+        FOREIGN KEY (project_id) REFERENCES projects(id),
+        FOREIGN KEY (project_item_id) REFERENCES project_items(id),
+        FOREIGN KEY (unit_id) REFERENCES units(id),
+        FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
+      )
+    `);
+    console.log('✅ تم إنشاء جدول الإنفاق المتوقع بنجاح');
+  }
+
+  // ===== فحص وإنشاء جدول العملاء =====
+  const clientsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='clients'").all() as Array<{ name: string }>;
+  const hasClientsTable = clientsTables.length > 0;
+  
+  if (!hasClientsTable) {
+    console.log('📦 إنشاء جدول العملاء...');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        code TEXT UNIQUE,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        contact_person TEXT,
+        tax_number TEXT,
+        notes TEXT,
+        color TEXT DEFAULT '#3b82f6',
+        icon TEXT DEFAULT '👤',
+        is_active INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
+        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
+      )
+    `);
+    console.log('✅ تم إنشاء جدول العملاء بنجاح');
+    
+    // إضافة عميل تجريبي افتراضي
+    console.log('📝 إضافة عميل تجريبي افتراضي...');
+    db.exec(`
+      INSERT INTO clients (id, name, code, phone, color, icon, notes) 
+      VALUES (1, 'عميل تجريبي', 'CLT-DEFAULT', '0500000000', '#9ca3af', '🏢', 'عميل افتراضي للمشاريع التجريبية والقديمة')
+    `);
+    console.log('✅ تم إضافة العميل التجريبي');
+  }
+  
+  // ===== إضافة client_id لجدول المشاريع =====
+  const projectsColumns2 = db.pragma('table_info(projects)') as Array<{ name: string }>;
+  const hasClientId = projectsColumns2.some((col) => col.name === 'client_id');
+  
+  if (!hasClientId) {
+    console.log('➕ إضافة عمود client_id لجدول المشاريع...');
+    // SQLite لا يدعم إضافة عمود REFERENCES مع DEFAULT
+    db.exec('ALTER TABLE projects ADD COLUMN client_id INTEGER DEFAULT 1');
+    console.log('✅ تم إضافة عمود client_id');
+    
+    // ربط جميع المشاريع الحالية بالعميل التجريبي
+    console.log('🔗 ربط المشاريع الحالية بالعميل التجريبي...');
+    db.exec('UPDATE projects SET client_id = 1 WHERE client_id IS NULL');
+    console.log('✅ تم ربط المشاريع الحالية بالعميل التجريبي');
   }
 
   // ===== فحص وإصلاح جدول project_items =====
@@ -846,13 +930,329 @@ app.delete("/api/expenses/:id", (req, res) => {
 });
 
 // =========================
-// مسارات المشاريع (Projects)
+// مسارات الإنفاق المتوقع (Expected Expenses)
 // =========================
 
-// جلب جميع المشاريع مع المصروفات المحسوبة
-app.get("/api/projects", authenticateAdmin, (req, res) => {
+app.get("/api/expected-expenses", (req, res) => {
+  try {
+    const { from, to, categoryId, projectId, q, limit = 100 } = req.query;
+    
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (from) { 
+      where.push("ee.date >= ?"); 
+      params.push(+from); 
+    }
+    if (to) { 
+      where.push("ee.date <= ?"); 
+      params.push(+to); 
+    }
+    if (categoryId) { 
+      where.push("ee.category_id = ?"); 
+      params.push(+categoryId); 
+    }
+    if (projectId) { 
+      where.push("ee.project_id = ?"); 
+      params.push(+projectId); 
+    }
+    if (q) { 
+      where.push("(ee.description LIKE ? OR ee.notes LIKE ? OR ee.details LIKE ?)"); 
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`); 
+    }
+
+    const sql = `
+      SELECT 
+        ee.*,
+        c.name AS category_name,
+        c.color AS category_color,
+        c.icon AS category_icon,
+        u.name AS unit_name,
+        pm.name AS payment_method,
+        p.name AS project_name,
+        p.code AS project_code,
+        p.color AS project_color,
+        pi.name AS project_item_name,
+        COALESCE(ee.amount + COALESCE(ee.tax_amount, 0), ee.amount) as total_amount
+      FROM expected_expenses ee
+      LEFT JOIN categories c ON c.id = ee.category_id
+      LEFT JOIN units u ON u.id = ee.unit_id
+      LEFT JOIN payment_methods pm ON pm.id = ee.payment_method_id
+      LEFT JOIN projects p ON p.id = ee.project_id
+      LEFT JOIN project_items pi ON pi.id = ee.project_item_id
+      ${where.length ? "WHERE " + where.join(" AND ") : ""}
+      ORDER BY ee.date DESC, ee.id DESC
+      LIMIT ?
+    `;
+    
+    const rows = db.prepare(sql).all(...params, +limit);
+    
+    console.log(`\n📋 جلب ${rows.length} إنفاق متوقع`);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error("خطأ في جلب الإنفاق المتوقع:", error);
+    res.status(500).json({ error: "خطأ في جلب الإنفاق المتوقع" });
+  }
+});
+
+app.post("/api/expected-expenses", (req, res) => {
+  try {
+    console.log("\n🔵 POST /api/expected-expenses - البيانات المستلمة:", JSON.stringify(req.body, null, 2));
+    
+    const {
+      categoryId, projectId, projectItemId,
+      quantity = 1, unit_price, unit_id,
+      amount, taxRate = 0, date,
+      paymentMethodId, 
+      description, details, notes
+    } = req.body;
+
+    // التحقق من البيانات المطلوبة
+    if (!categoryId || !date) {
+      return res.status(400).json({ error: "الفئة والتاريخ مطلوبة" });
+    }
+
+    // حساب المبلغ بناءً على الكمية وسعر الوحدة أو استخدام المبلغ المباشر
+    let calculatedAmount = amount;
+    if (unit_price && quantity) {
+      calculatedAmount = +(quantity * unit_price).toFixed(2);
+    } else if (!amount) {
+      return res.status(400).json({ error: "يجب إدخال المبلغ أو الكمية وسعر الوحدة" });
+    }
+
+    // حساب الضريبة والإجمالي
+    const taxAmount = +(calculatedAmount * (taxRate / 100)).toFixed(2);
+    const totalAmount = +(calculatedAmount + taxAmount).toFixed(2);
+
+    const stmt = db.prepare(`
+      INSERT INTO expected_expenses
+        (category_id, project_id, project_item_id, 
+         quantity, unit_price, unit_id, amount, 
+         tax_rate, tax_amount, total_amount,
+         payment_method_id, date, 
+         description, details, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const params = [
+      categoryId,
+      projectId || null,
+      projectItemId || null,
+      quantity || 1,
+      unit_price || calculatedAmount,
+      unit_id || null,
+      calculatedAmount, 
+      taxRate, 
+      taxAmount, 
+      totalAmount,
+      paymentMethodId || null,
+      date, 
+      description || null,
+      details || null,
+      notes || null
+    ];
+    
+    const info = stmt.run(...params);
+
+    console.log("✅ تم إدراج الإنفاق المتوقع برقم:", info.lastInsertRowid);
+
+    const expenseId = info.lastInsertRowid;
+
+    // تحديث expected_spending للمشروع إذا كان مرتبط بمشروع
+    if (projectId) {
+      try {
+        const project = db.prepare("SELECT expected_spending FROM projects WHERE id = ?").get(projectId) as any;
+        if (project) {
+          const newExpectedSpending = (project.expected_spending || 0) + calculatedAmount;
+          db.prepare("UPDATE projects SET expected_spending = ? WHERE id = ?").run(newExpectedSpending, projectId);
+          console.log(`✅ تم تحديث expected_spending للمشروع ${projectId} إلى ${newExpectedSpending}`);
+        }
+      } catch (updateError) {
+        console.error("⚠️ خطأ في تحديث expected_spending:", updateError);
+      }
+    }
+
+    res.json({ 
+      id: expenseId, 
+      amount: calculatedAmount,
+      totalAmount, 
+      taxAmount,
+      success: true 
+    });
+  } catch (error) {
+    console.error("خطأ في إضافة الإنفاق المتوقع:", error);
+    res.status(500).json({ error: "خطأ في إضافة الإنفاق المتوقع" });
+  }
+});
+
+app.patch("/api/expected-expenses/:id", (req, res) => {
+  try {
+    const id = +req.params.id;
+    
+    // التحقق من وجود الإنفاق المتوقع
+    const existing = db.prepare("SELECT * FROM expected_expenses WHERE id = ?").get(id) as any;
+    if (!existing) {
+      return res.status(404).json({ error: "الإنفاق المتوقع غير موجود" });
+    }
+
+    const data = { ...existing, ...req.body };
+    
+    // التأكد من وجود التاريخ وتحويله إلى timestamp إذا لزم الأمر
+    if (!data.date) {
+      return res.status(400).json({ error: "التاريخ مطلوب" });
+    }
+    
+    // تحويل التاريخ إلى timestamp إذا كان string
+    let dateValue = data.date;
+    if (typeof dateValue === 'string') {
+      dateValue = new Date(dateValue).getTime();
+    }
+    
+    // إعادة حساب الضريبة والإجمالي
+    const taxAmount = +(data.amount * ((data.taxRate || 0) / 100)).toFixed(2);
+    const totalAmount = +(data.amount + taxAmount).toFixed(2);
+
+    const stmt = db.prepare(`
+      UPDATE expected_expenses SET
+        category_id=?, project_id=?, project_item_id=?,
+        quantity=?, unit_price=?, unit_id=?,
+        amount=?, tax_rate=?, tax_amount=?, total_amount=?,
+        payment_method_id=?, date=?, 
+        description=?, details=?, notes=?,
+        updated_at=strftime('%s','now')
+      WHERE id=?
+    `);
+    
+    stmt.run(
+      data.categoryId, 
+      data.projectId || null,
+      data.projectItemId || null,
+      data.quantity || null,
+      data.unit_price || null,
+      data.unit_id || null,
+      data.amount, 
+      data.taxRate || 0, 
+      taxAmount, 
+      totalAmount,
+      data.paymentMethodId || null,
+      dateValue, 
+      data.description || null,
+      data.details || null,
+      data.notes || null,
+      id
+    );
+
+    // تحديث expected_spending للمشروع
+    const amountDiff = data.amount - existing.amount;
+    if (amountDiff !== 0 && data.projectId) {
+      try {
+        const project = db.prepare("SELECT expected_spending FROM projects WHERE id = ?").get(data.projectId) as any;
+        if (project) {
+          const newExpectedSpending = (project.expected_spending || 0) + amountDiff;
+          db.prepare("UPDATE projects SET expected_spending = ? WHERE id = ?").run(newExpectedSpending, data.projectId);
+          console.log(`✅ تم تحديث expected_spending للمشروع ${data.projectId}`);
+        }
+      } catch (updateError) {
+        console.error("⚠️ خطأ في تحديث expected_spending:", updateError);
+      }
+    }
+
+    res.json({ 
+      ok: true, 
+      totalAmount, 
+      taxAmount,
+      success: true 
+    });
+  } catch (error) {
+    console.error("خطأ في تحديث الإنفاق المتوقع:", error);
+    res.status(500).json({ error: "خطأ في تحديث الإنفاق المتوقع" });
+  }
+});
+
+app.delete("/api/expected-expenses/:id", (req, res) => {
+  try {
+    const id = +req.params.id;
+    
+    // جلب معلومات الإنفاق قبل الحذف لتحديث expected_spending
+    const existing = db.prepare("SELECT * FROM expected_expenses WHERE id = ?").get(id) as any;
+    
+    if (!existing) {
+      return res.status(404).json({ error: "الإنفاق المتوقع غير موجود" });
+    }
+    
+    // حذف الإنفاق المتوقع
+    const result = db.prepare("DELETE FROM expected_expenses WHERE id = ?").run(id);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "الإنفاق المتوقع غير موجود" });
+    }
+
+    // تحديث expected_spending للمشروع
+    if (existing.project_id && existing.amount) {
+      try {
+        const project = db.prepare("SELECT expected_spending FROM projects WHERE id = ?").get(existing.project_id) as any;
+        if (project) {
+          const newExpectedSpending = Math.max(0, (project.expected_spending || 0) - existing.amount);
+          db.prepare("UPDATE projects SET expected_spending = ? WHERE id = ?").run(newExpectedSpending, existing.project_id);
+          console.log(`✅ تم تحديث expected_spending للمشروع ${existing.project_id} إلى ${newExpectedSpending}`);
+        }
+      } catch (updateError) {
+        console.error("⚠️ خطأ في تحديث expected_spending:", updateError);
+      }
+    }
+    
+    res.json({ ok: true, success: true });
+  } catch (error) {
+    console.error("خطأ في حذف الإنفاق المتوقع:", error);
+    res.status(500).json({ error: "خطأ في حذف الإنفاق المتوقع" });
+  }
+});
+
+// =========================
+// مسارات العملاء (Clients)
+// =========================
+
+// جلب جميع العملاء مع إحصائيات مشاريعهم
+app.get("/api/clients", authenticateAdmin, (req, res) => {
   try {
     const rows = db.prepare(`
+      SELECT 
+        c.*,
+        COUNT(DISTINCT p.id) as projects_count,
+        COALESCE(SUM(p.budget), 0) as total_budget,
+        COALESCE(SUM(p.expected_spending), 0) as total_expected,
+        COUNT(CASE WHEN p.status = 'active' THEN 1 END) as active_projects,
+        COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as completed_projects
+      FROM clients c
+      LEFT JOIN projects p ON p.client_id = c.id
+      WHERE c.is_active = 1
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `).all();
+    res.json(rows);
+  } catch (error) {
+    console.error("خطأ في جلب العملاء:", error);
+    res.status(500).json({ error: "خطأ في جلب العملاء" });
+  }
+});
+
+// جلب تفاصيل عميل معين مع مشاريعه
+app.get("/api/clients/:id", authenticateAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // جلب بيانات العميل
+    const client = db.prepare(`
+      SELECT * FROM clients WHERE id = ?
+    `).get(id);
+    
+    if (!client) {
+      return res.status(404).json({ error: "العميل غير موجود" });
+    }
+    
+    // جلب مشاريع العميل مع الإحصائيات
+    const projects = db.prepare(`
       SELECT 
         p.*,
         COALESCE(SUM(e.amount), 0) as total_spent,
@@ -862,6 +1262,170 @@ app.get("/api/projects", authenticateAdmin, (req, res) => {
           ELSE 0 
         END as completion_percentage
       FROM projects p
+      LEFT JOIN expenses e ON e.project_id = p.id
+      WHERE p.client_id = ?
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+    `).all(id);
+    
+    res.json({
+      ...client,
+      projects
+    });
+  } catch (error) {
+    console.error("خطأ في جلب تفاصيل العميل:", error);
+    res.status(500).json({ error: "خطأ في جلب تفاصيل العميل" });
+  }
+});
+
+// إضافة عميل جديد
+app.post("/api/clients", authenticateAdmin, (req, res) => {
+  try {
+    const { name, code, phone, email, address, contact_person, tax_number, notes, color, icon } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: "اسم العميل مطلوب" });
+    }
+    
+    const now = Math.floor(Date.now() / 1000);
+    const result = db.prepare(`
+      INSERT INTO clients (name, code, phone, email, address, contact_person, tax_number, notes, color, icon, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      name,
+      code || null,
+      phone || null,
+      email || null,
+      address || null,
+      contact_person || null,
+      tax_number || null,
+      notes || null,
+      color || '#3b82f6',
+      icon || '👤',
+      now,
+      now
+    );
+    
+    res.json({ id: result.lastInsertRowid, success: true });
+  } catch (error: any) {
+    console.error("خطأ في إضافة عميل:", error);
+    if (error.message?.includes('UNIQUE')) {
+      res.status(400).json({ error: "رمز العميل موجود مسبقاً" });
+    } else {
+      res.status(500).json({ error: "خطأ في إضافة العميل" });
+    }
+  }
+});
+
+// تحديث عميل
+app.patch("/api/clients/:id", authenticateAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, code, phone, email, address, contact_person, tax_number, notes, color, icon, is_active } = req.body;
+    
+    const now = Math.floor(Date.now() / 1000);
+    const result = db.prepare(`
+      UPDATE clients 
+      SET 
+        name = COALESCE(?, name),
+        code = COALESCE(?, code),
+        phone = COALESCE(?, phone),
+        email = COALESCE(?, email),
+        address = COALESCE(?, address),
+        contact_person = COALESCE(?, contact_person),
+        tax_number = COALESCE(?, tax_number),
+        notes = COALESCE(?, notes),
+        color = COALESCE(?, color),
+        icon = COALESCE(?, icon),
+        is_active = COALESCE(?, is_active),
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      name || null,
+      code || null,
+      phone || null,
+      email || null,
+      address || null,
+      contact_person || null,
+      tax_number || null,
+      notes || null,
+      color || null,
+      icon || null,
+      is_active !== undefined ? (is_active ? 1 : 0) : null,
+      now,
+      id
+    );
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "العميل غير موجود" });
+    }
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("خطأ في تحديث عميل:", error);
+    if (error.message?.includes('UNIQUE')) {
+      res.status(400).json({ error: "رمز العميل موجود مسبقاً" });
+    } else {
+      res.status(500).json({ error: "خطأ في تحديث العميل" });
+    }
+  }
+});
+
+// حذف عميل (soft delete)
+app.delete("/api/clients/:id", authenticateAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // التحقق من وجود مشاريع مرتبطة
+    const projectsCount = db.prepare(`
+      SELECT COUNT(*) as count FROM projects WHERE client_id = ?
+    `).get(id) as { count: number };
+    
+    if (projectsCount.count > 0) {
+      return res.status(400).json({ 
+        error: `لا يمكن حذف العميل لأن لديه ${projectsCount.count} مشروع مرتبط. قم بإلغاء تفعيله بدلاً من ذلك.` 
+      });
+    }
+    
+    const result = db.prepare(`
+      UPDATE clients SET is_active = 0 WHERE id = ?
+    `).run(id);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "العميل غير موجود" });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error("خطأ في حذف عميل:", error);
+    res.status(500).json({ error: "خطأ في حذف العميل" });
+  }
+});
+
+// =========================
+// مسارات المشاريع (Projects)
+// =========================
+
+// جلب جميع المشاريع مع المصروفات المحسوبة
+app.get("/api/projects", authenticateAdmin, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT 
+        p.*,
+        c.name as client_name,
+        c.color as client_color,
+        c.icon as client_icon,
+        pi.name as project_item_name,
+        pi.icon as project_item_icon,
+        COALESCE(SUM(e.amount), 0) as total_spent,
+        COUNT(e.id) as expense_count,
+        CASE 
+          WHEN p.budget > 0 THEN ROUND((COALESCE(SUM(e.amount), 0) * 100.0 / p.budget), 2)
+          ELSE 0 
+        END as completion_percentage
+      FROM projects p
+      LEFT JOIN clients c ON c.id = p.client_id
+      LEFT JOIN project_items pi ON pi.id = p.project_item_id
       LEFT JOIN expenses e ON e.project_id = p.id
       GROUP BY p.id
       ORDER BY p.created_at DESC
@@ -978,8 +1542,8 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
     const { 
       name, 
       code, 
-      type,
       project_item_id,
+      client_id,
       description, 
       budget,
       expected_spending, 
@@ -989,13 +1553,13 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
       color 
     } = req.body;
     
-    if (!name || !type) {
-      return res.status(400).json({ error: "الاسم والنوع مطلوبان" });
+    if (!name) {
+      return res.status(400).json({ error: "الاسم مطلوب" });
     }
 
     const stmt = db.prepare(`
       INSERT INTO projects (
-        name, code, type, project_item_id, description, budget, expected_spending,
+        name, code, project_item_id, client_id, description, budget, expected_spending,
         start_date, end_date, status, color
       ) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1004,8 +1568,8 @@ app.post("/api/projects", authenticateAdmin, (req, res) => {
     const info = stmt.run(
       name,
       code || null,
-      type,
       project_item_id || null,
+      client_id || 1, // العميل التجريبي افتراضياً
       description || null,
       budget || 0,
       expected_spending || 0,
@@ -1033,8 +1597,8 @@ app.patch("/api/projects/:id", authenticateAdmin, (req, res) => {
     const { 
       name, 
       code, 
-      type,
       project_item_id,
+      client_id,
       description, 
       budget,
       expected_spending, 
@@ -1055,13 +1619,13 @@ app.patch("/api/projects/:id", authenticateAdmin, (req, res) => {
       updates.push("code = ?");
       values.push(code);
     }
-    if (type !== undefined) {
-      updates.push("type = ?");
-      values.push(type);
-    }
     if (project_item_id !== undefined) {
       updates.push("project_item_id = ?");
       values.push(project_item_id);
+    }
+    if (client_id !== undefined) {
+      updates.push("client_id = ?");
+      values.push(client_id);
     }
     if (description !== undefined) {
       updates.push("description = ?");

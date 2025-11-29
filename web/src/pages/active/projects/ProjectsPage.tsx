@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectApi } from '@/lib/api';
+import { projectApi, expectedExpenseApi, clientApi, projectItemApi } from '@/lib/api';
 import { Project } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,7 +38,8 @@ export default function ProjectsPage() {
   // حالات البحث والفلترة والترقيم
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [projectItemFilter, setProjectItemFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -46,6 +47,24 @@ export default function ProjectsPage() {
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: projectApi.getProjects,
+  });
+
+  // جلب العملاء
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: clientApi.getClients,
+  });
+
+  // جلب تصنيفات المشاريع
+  const { data: projectItems = [] } = useQuery({
+    queryKey: ['project-items'],
+    queryFn: projectItemApi.getProjectItems,
+  });
+
+  // جلب جميع الإنفاق المتوقع
+  const { data: allExpectedExpenses = [] } = useQuery({
+    queryKey: ['expected-expenses'],
+    queryFn: () => expectedExpenseApi.getExpectedExpenses({}),
   });
 
   // حذف مشروع
@@ -135,16 +154,27 @@ export default function ProjectsPage() {
       // الفلترة بالحالة
       const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
       
-      // الفلترة بالنوع
-      const matchesType = typeFilter === 'all' || project.type === typeFilter;
+      // الفلترة بالتصنيف
+      const matchesProjectItem = projectItemFilter === 'all' || 
+        (project.project_item_id && project.project_item_id.toString() === projectItemFilter);
       
-      return matchesSearch && matchesStatus && matchesType;
+      // الفلترة بالعميل
+      const matchesClient = clientFilter === 'all' || (project.client_id && project.client_id.toString() === clientFilter);
+      
+      return matchesSearch && matchesStatus && matchesProjectItem && matchesClient;
     });
-  }, [projects, searchQuery, statusFilter, typeFilter]);
+  }, [projects, searchQuery, statusFilter, projectItemFilter, clientFilter]);
 
   // حساب الإحصائيات
   const statistics = useMemo(() => {
     if (!filteredProjects) return null;
+    
+    // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع لكل مشروع
+    const calculateProjectExpectedSpending = (projectId: number) => {
+      return allExpectedExpenses
+        .filter(exp => exp.project_id === projectId)
+        .reduce((sum, exp) => sum + exp.amount, 0);
+    };
     
     return {
       total: filteredProjects.length,
@@ -152,11 +182,11 @@ export default function ProjectsPage() {
       completed: filteredProjects.filter(p => p.status === 'completed').length,
       onHold: filteredProjects.filter(p => p.status === 'on_hold').length,
       totalBudget: filteredProjects.reduce((sum, p) => sum + (p.budget || 0), 0),
-      totalExpectedSpending: filteredProjects.reduce((sum, p) => sum + (p.expected_spending || 0), 0),
+      totalExpectedSpending: filteredProjects.reduce((sum, p) => sum + calculateProjectExpectedSpending(p.id), 0),
       totalSpent: filteredProjects.reduce((sum, p) => sum + (p.total_spent || 0), 0),
       overBudget: filteredProjects.filter(p => (p.completion_percentage || 0) >= 100).length,
     };
-  }, [filteredProjects]);
+  }, [filteredProjects, allExpectedExpenses]);
 
   // ترقيم الصفحات
   const totalPages = Math.ceil((filteredProjects?.length || 0) / itemsPerPage);
@@ -165,12 +195,7 @@ export default function ProjectsPage() {
     return filteredProjects?.slice(startIndex, startIndex + itemsPerPage) || [];
   }, [filteredProjects, currentPage, itemsPerPage]);
 
-  // الحصول على الأنواع الفريدة
-  const uniqueTypes = useMemo(() => {
-    if (!projects) return [];
-    const types = new Set(projects.map(p => p.type));
-    return Array.from(types);
-  }, [projects]);
+  // No need for uniqueTypes anymore - using projectItems directly
 
   if (isLoading) {
     return (
@@ -312,21 +337,44 @@ export default function ProjectsPage() {
             </select>
           </div>
 
-          {/* فلترة النوع */}
+          {/* فلترة التصنيف */}
           <div>
-            <Label htmlFor="type" className="text-xs sm:text-sm mb-2 block">النوع</Label>
+            <Label htmlFor="projectItem" className="text-xs sm:text-sm mb-2 block">التصنيف</Label>
             <select
-              id="type"
-              value={typeFilter}
+              id="projectItem"
+              value={projectItemFilter}
               onChange={(e) => {
-                setTypeFilter(e.target.value);
+                setProjectItemFilter(e.target.value);
                 setCurrentPage(1);
               }}
               className="w-full p-3 border rounded-md text-sm sm:text-base min-h-[44px]"
             >
               <option value="all">الكل</option>
-              {uniqueTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
+              {projectItems.map((item) => (
+                <option key={item.id} value={item.id.toString()}>
+                  {item.icon} {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* فلترة العميل */}
+          <div>
+            <Label htmlFor="client" className="text-xs sm:text-sm mb-2 block">العميل</Label>
+            <select
+              id="client"
+              value={clientFilter}
+              onChange={(e) => {
+                setClientFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full p-3 border rounded-md text-sm sm:text-base min-h-[44px]"
+            >
+              <option value="all">الكل</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id.toString()}>
+                  {client.icon ? `${client.icon} ` : ''}{client.name}
+                </option>
               ))}
             </select>
           </div>
@@ -374,7 +422,7 @@ export default function ProjectsPage() {
               : 'ابدأ بإضافة مشروع جديد لتتبع الميزانيات والمصروفات'}
           </p>
           {filteredProjects.length === 0 && (projects?.length || 0) > 0 ? (
-            <Button onClick={() => { setSearchQuery(''); setStatusFilter('all'); setTypeFilter('all'); }}>
+            <Button onClick={() => { setSearchQuery(''); setStatusFilter('all'); setProjectItemFilter('all'); setClientFilter('all'); }}>
               إعادة تعيين الفلترة
             </Button>
           ) : (
@@ -388,6 +436,10 @@ export default function ProjectsPage() {
         <>
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
             {paginatedProjects.map((project) => {
+            // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
+            const projectExpectedExpenses = allExpectedExpenses.filter(exp => exp.project_id === project.id);
+            const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            
             const completionPercentage = project.completion_percentage || 0;
             const remaining = (project.budget || 0) - (project.total_spent || 0);
 
@@ -406,11 +458,20 @@ export default function ProjectsPage() {
                           {project.code}
                         </span>
                       )}
+                      {project.client_name && (
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded flex items-center gap-1">
+                          {project.client_icon && <span>{project.client_icon}</span>}
+                          <span>{project.client_name}</span>
+                        </span>
+                      )}
+                      {project.project_item_name && (
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
+                          {project.project_item_icon && <span>{project.project_item_icon}</span>}
+                          <span>{project.project_item_name}</span>
+                        </span>
+                      )}
                       <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(project.status)}`}>
                         {getStatusText(project.status)}
-                      </span>
-                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                        {project.type}
                       </span>
                     </div>
 
@@ -428,7 +489,7 @@ export default function ProjectsPage() {
                       <div>
                         <p className="text-xs text-gray-500">الإنفاق المتوقع</p>
                         <p className="text-base sm:text-lg font-bold text-indigo-600">
-                          {(project.expected_spending || 0).toLocaleString()} ر.س
+                          {expectedSpending.toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>
@@ -452,7 +513,7 @@ export default function ProjectsPage() {
                       <div>
                         <p className="text-xs text-gray-500">الربح المتوقع</p>
                         <p className="text-base sm:text-lg font-bold text-emerald-600">
-                          {((project.budget || 0) - (project.expected_spending || 0)).toLocaleString()} ر.س
+                          {((project.budget || 0) - expectedSpending).toLocaleString()} ر.س
                         </p>
                       </div>
                     </div>

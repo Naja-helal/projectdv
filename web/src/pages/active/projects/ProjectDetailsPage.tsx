@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
-import { projectApi } from '@/lib/api';
+import { projectApi, expectedExpenseApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,13 @@ export default function ProjectDetailsPage() {
   const { data: project, isLoading, isError } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.getProject(Number(id)),
+    enabled: !!id,
+  });
+
+  // جلب الإنفاق المتوقع للمشروع
+  const { data: expectedExpenses = [] } = useQuery({
+    queryKey: ['expected-expenses', { projectId: Number(id) }],
+    queryFn: () => expectedExpenseApi.getExpectedExpenses({ projectId: Number(id) }),
     enabled: !!id,
   });
 
@@ -91,6 +98,39 @@ export default function ProjectDetailsPage() {
     
     return expenses;
   }, [project?.expenses, sortField, sortDirection]);
+
+  // الإنفاق المتوقع المرتب
+  const sortedExpectedExpenses = useMemo(() => {
+    if (!expectedExpenses) return [];
+    
+    const expenses = [...expectedExpenses];
+    
+    expenses.sort((a: any, b: any) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'date':
+          comparison = a.date - b.date;
+          break;
+        case 'description':
+          comparison = (a.description || '').localeCompare(b.description || '', 'ar');
+          break;
+        case 'category':
+          comparison = (a.category_name || '').localeCompare(b.category_name || '', 'ar');
+          break;
+        case 'amount':
+          comparison = a.amount - b.amount;
+          break;
+        case 'quantity':
+          comparison = (a.quantity || 0) - (b.quantity || 0);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+    
+    return expenses;
+  }, [expectedExpenses, sortField, sortDirection]);
 
   // أيقونة الترتيب
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -173,6 +213,9 @@ export default function ProjectDetailsPage() {
   const completionPercentage = project.completion_percentage || 0;
   const remaining = (project.budget || 0) - (project.total_spent || 0);
   const isOverBudget = remaining < 0;
+  
+  // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
+  const expectedSpending = expectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -192,7 +235,12 @@ export default function ProjectDetailsPage() {
                 </Badge>
               )}
               <Badge className={getStatusColor(project.status)}>{getStatusText(project.status)}</Badge>
-              <Badge variant="secondary">{project.type}</Badge>
+              {project.project_item_name && (
+                <Badge variant="secondary" className="text-sm">
+                  {project.project_item_icon && <span className="mr-1">{project.project_item_icon}</span>}
+                  {project.project_item_name}
+                </Badge>
+              )}
             </div>
             {project.description && <p className="text-gray-600">{project.description}</p>}
           </div>
@@ -215,7 +263,7 @@ export default function ProjectDetailsPage() {
             <p className="text-sm text-gray-600">الإنفاق المتوقع</p>
             <FileText className="h-5 w-5 text-indigo-500" />
           </div>
-          <p className="text-3xl font-bold text-indigo-600">{(project.expected_spending || 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-indigo-600">{expectedSpending.toLocaleString()}</p>
           <p className="text-sm text-gray-500 mt-1">ريال سعودي</p>
         </Card>
 
@@ -273,7 +321,7 @@ export default function ProjectDetailsPage() {
             <TrendingUp className="h-5 w-5 text-emerald-500" />
           </div>
           <p className="text-3xl font-bold text-emerald-600">
-            {((project.budget || 0) - (project.expected_spending || 0)).toLocaleString()}
+            {((project.budget || 0) - expectedSpending).toLocaleString()}
           </p>
           <p className="text-sm text-gray-500 mt-1">ريال سعودي</p>
         </Card>
@@ -520,6 +568,219 @@ export default function ProjectDetailsPage() {
                   </span>
                   <span className="text-2xl font-extrabold text-green-700">
                     {project.expenses.reduce((sum: number, exp: any) => sum + (exp.total_amount || exp.amount), 0).toLocaleString()} ر.س
+                  </span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
+
+      {/* الإنفاق المتوقع المرتبط */}
+      <Card className="p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">الإنفاق المتوقع المرتبط بالمشروع</h2>
+        {!expectedExpenses || expectedExpenses.length === 0 ? (
+          <div className="text-center py-8">
+            <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600">لا يوجد إنفاق متوقع مرتبط بهذا المشروع</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto shadow-lg rounded-xl border border-gray-200">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-200">
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('date')}
+                        className="flex items-center gap-2 hover:text-purple-600 transition-colors"
+                      >
+                        📅 التاريخ
+                        <SortIcon field="date" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">📋 التفاصيل</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('category')}
+                        className="flex items-center gap-2 hover:text-purple-600 transition-colors"
+                      >
+                        🏷️ الفئة
+                        <SortIcon field="category" />
+                      </button>
+                    </th>
+                    <th className="text-center py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('quantity')}
+                        className="flex items-center gap-2 mx-auto hover:text-purple-600 transition-colors"
+                      >
+                        🔢 الكمية
+                        <SortIcon field="quantity" />
+                      </button>
+                    </th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">💵 سعر الوحدة</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">💳 الدفع</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">📊 الضريبة</th>
+                    <th className="text-right py-4 px-4 font-bold text-gray-800">
+                      <button
+                        onClick={() => handleSort('amount')}
+                        className="flex items-center gap-2 hover:text-purple-600 transition-colors"
+                      >
+                        💰 المبلغ
+                        <SortIcon field="amount" />
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sortedExpectedExpenses.map((expense: any) => (
+                    <tr key={expense.id} className="hover:bg-purple-50 transition-colors duration-150">
+                      <td className="py-4 px-4 text-gray-700 font-medium whitespace-nowrap">
+                        {new Date(expense.date).toLocaleDateString('ar-SA')}
+                      </td>
+                      <td className="py-4 px-4 text-gray-600 max-w-xs">
+                        <div className="line-clamp-2 text-sm" title={expense.details}>
+                          {expense.details || '-'}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Badge
+                          className="text-xs font-semibold px-3 py-1 whitespace-nowrap"
+                          style={{ backgroundColor: expense.category_color || '#6b7280' }}
+                        >
+                          {expense.category_name}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4 text-gray-700 text-center font-medium whitespace-nowrap">
+                        {expense.quantity ? `${expense.quantity} ${expense.unit_name || ''}` : '-'}
+                      </td>
+                      <td className="py-4 px-4 text-gray-700 font-medium whitespace-nowrap">
+                        {expense.unit_price ? `${expense.unit_price.toLocaleString()} ر.س` : '-'}
+                      </td>
+                      <td className="py-4 px-4 text-gray-700">
+                        {expense.payment_method || '-'}
+                      </td>
+                      <td className="py-4 px-4 text-gray-700 whitespace-nowrap">
+                        {expense.tax_rate ? `${expense.tax_rate}% (${expense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
+                      </td>
+                      <td className="py-4 px-4 font-bold text-lg text-purple-700 whitespace-nowrap">
+                        {expense.total_amount ? expense.total_amount.toLocaleString() : expense.amount.toLocaleString()} ر.س
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gradient-to-r from-purple-50 to-purple-100">
+                  <tr className="border-t-2 border-purple-300">
+                    <td colSpan={7} className="py-4 px-4 text-right">
+                      <span className="text-lg font-bold text-gray-900">💰 الإجمالي:</span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="text-xl font-extrabold text-purple-700">
+                        {expectedExpenses.reduce((sum: number, exp: any) => sum + (exp.total_amount || exp.amount), 0).toLocaleString()} ر.س
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="lg:hidden space-y-4">
+              {sortedExpectedExpenses.map((expense: any) => (
+                <div key={expense.id} className="bg-white rounded-xl p-5 shadow-md border-r-4 border-purple-500 hover:shadow-lg transition-shadow duration-200">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-100">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-900 text-lg mb-1">
+                        {expense.details || 'إنفاق متوقع'}
+                      </h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        📅 {new Date(expense.date).toLocaleDateString('ar-SA')}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg px-4 py-2 mr-2">
+                      <span className="text-xl font-extrabold text-purple-700 whitespace-nowrap">
+                        {(expense.total_amount || expense.amount).toLocaleString()} ر.س
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  {expense.details && (
+                    <div className="bg-purple-50 rounded-lg p-3 mb-4 border border-purple-100">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">📋 التفاصيل:</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{expense.details}</p>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {expense.notes && (
+                    <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-100">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">📝 ملاحظات:</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{expense.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2 font-medium">🏷️ الفئة</p>
+                      <Badge
+                        className="text-xs font-semibold px-3 py-1.5"
+                        style={{ backgroundColor: expense.category_color || '#6b7280' }}
+                      >
+                        {expense.category_name}
+                      </Badge>
+                    </div>
+                    {expense.quantity && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">🔢 الكمية</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.quantity} {expense.unit_name || ''}
+                        </p>
+                      </div>
+                    )}
+                    {expense.unit_price && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">💵 سعر الوحدة</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.unit_price.toLocaleString()} ر.س
+                        </p>
+                      </div>
+                    )}
+                    {expense.payment_method && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-2 font-medium">💳 طريقة الدفع</p>
+                        <p className="text-sm font-semibold text-gray-900">{expense.payment_method}</p>
+                      </div>
+                    )}
+                    {expense.tax_rate > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 mb-1">📊 الضريبة</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {expense.tax_rate}% ({(expense.tax_amount || 0).toLocaleString()} ر.س)
+                        </p>
+                      </div>
+                    )}
+                    <div className="bg-purple-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">💵 المبلغ الأساسي</p>
+                      <p className="text-sm font-semibold text-purple-700">
+                        {expense.amount.toLocaleString()} ر.س
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Mobile Total */}
+              <div className="bg-gradient-to-br from-purple-50 via-purple-100 to-pink-100 rounded-xl p-5 border-2 border-purple-400 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    💰 الإجمالي:
+                  </span>
+                  <span className="text-2xl font-extrabold text-purple-700">
+                    {expectedExpenses.reduce((sum: number, exp: any) => sum + (exp.total_amount || exp.amount), 0).toLocaleString()} ر.س
                   </span>
                 </div>
               </div>

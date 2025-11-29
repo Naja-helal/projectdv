@@ -20,7 +20,7 @@ import {
   Calendar,
   Wallet,
 } from 'lucide-react';
-import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi } from '@/lib/api';
+import { projectApi, expenseApi, expectedExpenseApi, categoryApi, projectItemApi, paymentMethodApi, clientApi } from '@/lib/api';
 import Papa from 'papaparse';
 
 type TimeRange = 'month' | 'quarter' | 'year' | 'all';
@@ -31,10 +31,16 @@ export default function StatisticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   // Fetch data
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: clientApi.getClients,
+  });
+
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: projectApi.getProjects,
@@ -43,6 +49,11 @@ export default function StatisticsPage() {
   const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ['expenses'],
     queryFn: () => expenseApi.getExpenses({}),
+  });
+
+  const { data: expectedExpenses = [] } = useQuery<Expense[]>({
+    queryKey: ['expected-expenses'],
+    queryFn: () => expectedExpenseApi.getExpectedExpenses({}),
   });
 
   const { data: categories = [] } = useQuery<Category[]>({
@@ -95,6 +106,12 @@ export default function StatisticsPage() {
       filtered = filtered.filter((exp) => new Date(exp.date) <= new Date(endDate));
     }
 
+    // Filter by client
+    if (selectedClientId) {
+      const clientProjects = projects.filter(p => p.client_id === selectedClientId).map(p => p.id);
+      filtered = filtered.filter((exp) => exp.project_id && clientProjects.includes(exp.project_id));
+    }
+
     // Filter by project
     if (selectedProjectId) {
       filtered = filtered.filter((exp) => exp.project_id === selectedProjectId);
@@ -106,28 +123,65 @@ export default function StatisticsPage() {
     }
 
     return filtered;
-  }, [expenses, timeRange, startDate, endDate, selectedProjectId, selectedCategoryId]);
+  }, [expenses, timeRange, startDate, endDate, selectedClientId, selectedProjectId, selectedCategoryId, projects]);
 
   // Calculate statistics
   const totalBudget = useMemo(() => {
-    const projectsToCalc = selectedProjectId 
-      ? projects.filter(p => p.id === selectedProjectId)
-      : projects;
+    let projectsToCalc = projects;
+    
+    if (selectedClientId) {
+      projectsToCalc = projectsToCalc.filter(p => p.client_id === selectedClientId);
+    }
+    
+    if (selectedProjectId) {
+      projectsToCalc = projectsToCalc.filter(p => p.id === selectedProjectId);
+    }
+    
     return projectsToCalc.reduce((sum, p) => sum + (p.budget || 0), 0);
-  }, [projects, selectedProjectId]);
+  }, [projects, selectedClientId, selectedProjectId]);
 
   const totalExpected = useMemo(() => {
-    const projectsToCalc = selectedProjectId 
-      ? projects.filter(p => p.id === selectedProjectId)
-      : projects;
-    return projectsToCalc.reduce((sum, p) => sum + (p.expected_spending || 0), 0);
-  }, [projects, selectedProjectId]);
+    let filtered = expectedExpenses;
+    
+    // Filter by client if selected
+    if (selectedClientId) {
+      const clientProjects = projects.filter(p => p.client_id === selectedClientId).map(p => p.id);
+      filtered = filtered.filter(exp => exp.project_id && clientProjects.includes(exp.project_id));
+    }
+    
+    // Filter by project if selected
+    if (selectedProjectId) {
+      filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
+    }
+    
+    return filtered.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expectedExpenses, selectedClientId, selectedProjectId, projects]);
 
   const totalActual = useMemo(() => {
     return filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   }, [filteredExpenses]);
 
   const expenseCount = filteredExpenses.length;
+
+  // حساب إجمالي الإنفاق المتوقع
+  const totalExpectedExpenses = useMemo(() => {
+    let filtered = expectedExpenses;
+    
+    // Filter by project if selected
+    if (selectedProjectId) {
+      filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
+    }
+    
+    return filtered.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expectedExpenses, selectedProjectId]);
+
+  const expectedExpenseCount = useMemo(() => {
+    let filtered = expectedExpenses;
+    if (selectedProjectId) {
+      filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
+    }
+    return filtered.length;
+  }, [expectedExpenses, selectedProjectId]);
 
   // Prepare detailed project data for table
   const projectDetailsData = useMemo(() => {
@@ -140,6 +194,10 @@ export default function StatisticsPage() {
       const actualSpending = projectExpenses.reduce((sum, exp) => sum + exp.amount, 0);
       const remaining = (project.budget || 0) - actualSpending;
       const percentage = project.budget ? (actualSpending / project.budget) * 100 : 0;
+      
+      // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
+      const projectExpectedExpenses = expectedExpenses.filter(exp => exp.project_id === project.id);
+      const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
       return {
         id: project.id,
@@ -147,7 +205,7 @@ export default function StatisticsPage() {
         code: project.code || '-',
         status: project.status || '-',
         budget: project.budget || 0,
-        expected: project.expected_spending || 0,
+        expected: expectedSpending,
         actual: actualSpending,
         remaining: remaining,
         percentage: percentage.toFixed(1),
@@ -454,6 +512,7 @@ export default function StatisticsPage() {
                 setTimeRange('all');
                 setStartDate('');
                 setEndDate('');
+                setSelectedClientId(null);
                 setSelectedProjectId(null);
                 setSelectedCategoryId(null);
               }}
@@ -464,8 +523,31 @@ export default function StatisticsPage() {
           </div>
         </div>
 
-        {/* Project and Category Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        {/* Client, Project and Category Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          {/* Client Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              العميل
+            </label>
+            <select
+              value={selectedClientId || ''}
+              onChange={(e) => {
+                setSelectedClientId(e.target.value ? Number(e.target.value) : null);
+                setSelectedProjectId(null); // Reset project when client changes
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+            >
+              <option value="">كل العملاء</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.icon ? `${client.icon} ` : ''}{client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Project Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -478,7 +560,10 @@ export default function StatisticsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
             >
               <option value="">كل المشاريع</option>
-              {projects.map((project) => (
+              {(selectedClientId 
+                ? projects.filter(p => p.client_id === selectedClientId)
+                : projects
+              ).map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name} - {project.code}
                 </option>
@@ -509,7 +594,7 @@ export default function StatisticsPage() {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Total Projects */}
         <Card className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <div className="flex items-center justify-between">
@@ -546,6 +631,22 @@ export default function StatisticsPage() {
               </h3>
             </div>
             <TrendingUp className="h-12 w-12 text-green-200" />
+          </div>
+        </Card>
+
+        {/* Expected Expenses */}
+        <Card className="p-6 bg-gradient-to-br from-violet-500 to-violet-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-violet-100 text-sm">الإنفاق المتوقع</p>
+              <h3 className="text-2xl font-bold mt-2">
+                {totalExpectedExpenses.toLocaleString()} ر.س
+              </h3>
+              <p className="text-violet-200 text-xs mt-1">
+                {expectedExpenseCount} مصروف
+              </p>
+            </div>
+            <FileText className="h-12 w-12 text-violet-200" />
           </div>
         </Card>
 

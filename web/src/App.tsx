@@ -4,7 +4,10 @@ import Layout from './components/layout/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
+import ExpectedExpenses from './pages/ExpectedExpenses'
 import Categories from './pages/CategoriesNew'
+import Clients from './pages/Clients'
+import ClientDetails from './pages/ClientDetails'
 import ProjectItems from './pages/ProjectItems'
 import PaymentMethods from './pages/PaymentMethods'
 import Units from './pages/Units'
@@ -23,7 +26,10 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/expenses" element={<Expenses />} />
+              <Route path="/expected-expenses" element={<ExpectedExpenses />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:id" element={<ClientDetails />} />
               <Route path="/project-items" element={<ProjectItems />} />
               <Route path="/payment-methods" element={<PaymentMethods />} />
               <Route path="/units" element={<Units />} />

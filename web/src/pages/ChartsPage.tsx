@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { expenseApi, projectApi, categoryApi } from '@/lib/api';
+import { expenseApi, expectedExpenseApi, projectApi, categoryApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,6 +41,11 @@ export default function ChartsPage() {
   const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ['expenses'],
     queryFn: () => expenseApi.getExpenses({})
+  });
+
+  const { data: expectedExpenses = [] } = useQuery<Expense[]>({
+    queryKey: ['expected-expenses'],
+    queryFn: () => expectedExpenseApi.getExpectedExpenses({})
   });
 
   const { data: projects = [] } = useQuery<Project[]>({
@@ -196,14 +201,18 @@ export default function ChartsPage() {
       const projectExpenses = filteredExpenses.filter(exp => exp.project_id === project.id);
       const actualSpending = projectExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+      // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
+      const projectExpectedExpenses = expectedExpenses.filter(exp => exp.project_id === project.id);
+      const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
       return {
         name: project.name,
         budget: project.budget || 0,
         spending: actualSpending,
-        expected: project.expected_spending || 0
+        expected: expectedSpending
       };
     });
-  }, [projects, filteredExpenses, selectedProjectId]);
+  }, [projects, filteredExpenses, expectedExpenses, selectedProjectId]);
 
   // 5. المصروفات اليومية (آخر 15 يوم)
   const dailyData = useMemo(() => {
