@@ -13,6 +13,7 @@ const mainNavigation = [
   { name: 'المشاريع', href: '/projects', icon: '📁' },
   { name: 'المصروفات', href: '/expenses', icon: '💰' },
   { name: 'الإحصائيات والتقارير', href: '/statistics', icon: '📈' },
+  { name: 'الرسومات البيانية', href: '/charts', icon: '📊' },
 ]
 
 const settingsNavigation = [
