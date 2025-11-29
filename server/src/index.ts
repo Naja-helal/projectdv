@@ -25,6 +25,14 @@ console.log(`📂 مسار قاعدة البيانات: ${dbPath}`);
 
 let db = new Database(dbPath);
 
+// طباعة أسماء الجداول عند بدء التشغيل
+try {
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+  console.log('🗄️ الجداول الموجودة في قاعدة البيانات:', tables.map(t => t.name));
+} catch (err) {
+  console.error('❌ خطأ في قراءة الجداول من قاعدة البيانات:', err.message);
+}
+
 // فحص وجود قاعدة البيانات
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='categories'").all() as Array<{ name: string }>;
 if (tables.length > 0) {
