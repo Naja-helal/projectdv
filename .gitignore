@@ -26,9 +26,11 @@ lerna-debug.log*
 *.log
 
 # Database
-# *.db
-!server/expenses.db
-!server/expenses-production.db
+# تجاهل جميع ملفات قاعدة البيانات لحماية البيانات
+*.db
+*.db-shm
+*.db-wal
+# السيرفر سيستخدم قاعدة البيانات الموجودة في Railway Volume
 
 # OS
 .DS_Store
