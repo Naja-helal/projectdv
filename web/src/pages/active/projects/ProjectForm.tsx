@@ -175,9 +175,8 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               id="budget"
               type="number"
               inputMode="decimal"
-              pattern="[0-9]*"
               min="0"
-              step="0.01"
+              step="0.001"
               value={formData.budget}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);
@@ -199,9 +198,8 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               id="expected_spending"
               type="number"
               inputMode="decimal"
-              pattern="[0-9]*"
               min="0"
-              step="0.01"
+              step="0.001"
               value={formData.expected_spending}
               onChange={(e) => {
                 const cleaned = removeLeadingZeros(e.target.value);

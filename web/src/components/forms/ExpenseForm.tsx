@@ -259,8 +259,7 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
                     })}
                     type="number"
                     inputMode="decimal"
-                    pattern="[0-9]*"
-                    step="0.01"
+                    step="0.001"
                     placeholder="10"
                     className="text-base p-3 border-2 rounded-lg"
                     onBlur={(e) => {
@@ -281,8 +280,7 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
                     })}
                     type="number"
                     inputMode="decimal"
-                    pattern="[0-9]*"
-                    step="0.01"
+                    step="0.001"
                     placeholder="250"
                     className="text-base p-3 border-2 rounded-lg"
                     onBlur={(e) => {
@@ -334,8 +332,7 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
                   })}
                   type="number"
                   inputMode="decimal"
-                  pattern="[0-9]*\.?[0-9]*"
-                  step="0.01"
+                  step="0.001"
                   placeholder="أدخل المبلغ"
                   className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
                   onBlur={(e) => {
@@ -365,8 +362,7 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
                 onBlur={(e) => {
                   e.target.value = removeLeadingZeros(e.target.value);
                 }}
-                pattern="[0-9]*\.?[0-9]*"
-                step="0.01"
+                step="0.001"
                 placeholder="15"
                 className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
               />

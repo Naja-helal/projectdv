@@ -122,9 +122,8 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
           id="budget"
           type="number"
           inputMode="decimal"
-          pattern="[0-9]*"
           min="0"
-          step="0.01"
+          step="0.001"
           value={formData.budget || 0}
           onChange={(e) => {
             const cleaned = removeLeadingZeros(e.target.value);
