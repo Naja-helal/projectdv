@@ -7,9 +7,9 @@ node_modules/
 coverage/
 
 # Production builds
-dist/
-build/
-*.tsbuildinfo
+# dist/
+# build/
+!server/dist/
 
 # Environment variables
 .env
@@ -26,12 +26,8 @@ lerna-debug.log*
 *.log
 
 # Database
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-# استثناء لقاعدة بيانات الإنتاج
+# *.db
+!server/expenses.db
 !server/expenses-production.db
 
 # OS
