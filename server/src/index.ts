@@ -28,9 +28,9 @@ let db = new Database(dbPath);
 // طباعة أسماء الجداول عند بدء التشغيل
 try {
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-  console.log('🗄️ الجداول الموجودة في قاعدة البيانات:', tables.map(t => t.name));
-} catch (err) {
-  console.error('❌ خطأ في قراءة الجداول من قاعدة البيانات:', err.message);
+  console.log('🗄️ الجداول الموجودة في قاعدة البيانات:', tables.map((t: any) => t.name));
+} catch (err: any) {
+  console.error('❌ خطأ في قراءة الجداول من قاعدة البيانات:', (err as Error).message);
 }
 
 // فحص وجود قاعدة البيانات
