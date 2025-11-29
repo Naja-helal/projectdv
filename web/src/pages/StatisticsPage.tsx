@@ -336,7 +336,6 @@ export default function StatisticsPage() {
       'كود المشروع': exp.projectCode,
       'الفئة': exp.category,
       'البند': exp.item,
-      'الوصف': exp.description,
       'الكمية': exp.quantity,
       'المبلغ': exp.amount,
       'الإجمالي': exp.total,
@@ -1184,7 +1183,6 @@ export default function StatisticsPage() {
                 <th className="px-4 py-3 text-right font-bold text-gray-800">🎯 المشروع</th>
                 <th className="px-4 py-3 text-right font-bold text-gray-800">🔢 الكود</th>
                 <th className="px-4 py-3 text-right font-bold text-gray-800">🏷️ الفئة</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-800">📝 الوصف</th>
                 <th className="px-4 py-3 text-right font-bold text-gray-800">📋 التفاصيل</th>
                 <th className="px-4 py-3 text-center font-bold text-gray-800">🔢 الكمية</th>
                 <th className="px-4 py-3 text-right font-bold text-gray-800">💵 سعر الوحدة</th>
@@ -1203,11 +1201,6 @@ export default function StatisticsPage() {
                     <td className="px-4 py-3 font-semibold text-gray-900">{expense.project}</td>
                     <td className="px-4 py-3 text-gray-600">{expense.projectCode}</td>
                     <td className="px-4 py-3 text-gray-700">{expense.category}</td>
-                    <td className="px-4 py-3 text-gray-600 max-w-xs">
-                      <div className="line-clamp-2" title={expense.description}>
-                        {expense.description || '-'}
-                      </div>
-                    </td>
                     <td className="px-4 py-3 text-gray-600 max-w-xs">
                       <div className="line-clamp-2 text-sm" title={fullExpense?.details}>
                         {fullExpense?.details || '-'}
@@ -1258,14 +1251,6 @@ export default function StatisticsPage() {
                     </span>
                   </div>
                 </div>
-
-                {/* Description */}
-                {expense.description && (
-                  <div className="bg-blue-50 rounded-lg p-3 mb-3 border border-blue-100">
-                    <p className="text-xs text-gray-500 mb-1 font-medium">📝 الوصف:</p>
-                    <p className="text-sm text-gray-700">{expense.description}</p>
-                  </div>
-                )}
 
                 {/* Details */}
                 {fullExpense?.details && (

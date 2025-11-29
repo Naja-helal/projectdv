@@ -326,7 +326,6 @@ export default function Expenses() {
                       />
                     </th>
                     <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📅 التاريخ</th>
-                    <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📝 الوصف</th>
                     <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">📋 التفاصيل</th>
                     <th className="px-3 py-4 text-right text-sm font-bold text-gray-800">🏷️ الفئة</th>
                     <th className="px-3 py-4 text-center text-sm font-bold text-gray-800">🔢 الكمية</th>
@@ -364,9 +363,6 @@ export default function Expenses() {
                       </td>
                       <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
                         {format(new Date(expense.date), 'dd/MM/yyyy', { locale: ar })}
-                      </td>
-                      <td className="px-3 py-4 font-semibold text-gray-900 min-w-[150px]">
-                        {expense.description || '-'}
                       </td>
                       <td className="px-3 py-4 text-gray-600 max-w-xs">
                         <div className="line-clamp-2 text-sm" title={expense.details}>
@@ -528,10 +524,7 @@ export default function Expenses() {
                       className="w-5 h-5 rounded border-gray-300 mt-1"
                     />
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-base">{expense.description}</h3>
-                      {expense.details && (
-                        <p className="text-sm text-gray-600 mt-1">{expense.details}</p>
-                      )}
+                      <h3 className="font-semibold text-gray-900 text-base">{expense.details || 'مصروف'}</h3>
                     </div>
                   </div>
                   <div className="flex gap-1">

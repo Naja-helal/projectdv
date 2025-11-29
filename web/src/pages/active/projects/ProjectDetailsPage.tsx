@@ -331,15 +331,6 @@ export default function ProjectDetailsPage() {
                         <SortIcon field="date" />
                       </button>
                     </th>
-                    <th className="text-right py-4 px-4 font-bold text-gray-800">
-                      <button
-                        onClick={() => handleSort('description')}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        📝 الوصف
-                        <SortIcon field="description" />
-                      </button>
-                    </th>
                     <th className="text-right py-4 px-4 font-bold text-gray-800">📋 التفاصيل</th>
                     <th className="text-right py-4 px-4 font-bold text-gray-800">
                       <button
@@ -379,9 +370,6 @@ export default function ProjectDetailsPage() {
                       <td className="py-4 px-4 text-gray-700 font-medium whitespace-nowrap">
                         {new Date(expense.date).toLocaleDateString('ar-SA')}
                       </td>
-                      <td className="py-4 px-4 font-semibold text-gray-900 min-w-[150px]">
-                        {expense.description || '-'}
-                      </td>
                       <td className="py-4 px-4 text-gray-600 max-w-xs">
                         <div className="line-clamp-2 text-sm" title={expense.details}>
                           {expense.details || '-'}
@@ -415,7 +403,7 @@ export default function ProjectDetailsPage() {
                 </tbody>
                 <tfoot className="bg-gradient-to-r from-green-50 to-green-100">
                   <tr className="border-t-2 border-green-300">
-                    <td colSpan={8} className="py-4 px-4 text-right">
+                    <td colSpan={7} className="py-4 px-4 text-right">
                       <span className="text-lg font-bold text-gray-900">💰 الإجمالي:</span>
                     </td>
                     <td className="py-4 px-4">
@@ -436,7 +424,7 @@ export default function ProjectDetailsPage() {
                   <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-100">
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-900 text-lg mb-1">
-                        {expense.description || 'مصروف'}
+                        {expense.details || 'مصروف'}
                       </h4>
                       <p className="text-xs text-gray-500 flex items-center gap-1">
                         📅 {new Date(expense.date).toLocaleDateString('ar-SA')}

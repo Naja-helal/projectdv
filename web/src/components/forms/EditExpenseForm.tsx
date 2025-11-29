@@ -202,29 +202,10 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
           
           {/* الحقول الأساسية */}
           <div className="space-y-5">
-            {/* الوصف */}
-            <div className="space-y-3">
-              <Label htmlFor="description" className="text-base font-semibold">الوصف</Label>
-              <Input
-                {...register('description')}
-                type="text"
-                placeholder="وصف المصروف (مثل: شراء مواد بناء)"
-                className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
-              />
-            </div>
+            {/* حقل الوصف مخفي - محفوظ للاستخدام المستقبلي */}
+            <input type="hidden" {...register('description')} />
 
-            {/* التفاصيل */}
-            <div className="space-y-3">
-              <Label htmlFor="details" className="text-base font-semibold">التفاصيل</Label>
-              <Textarea
-                {...register('details')}
-                placeholder="تفاصيل إضافية عن المصروف..."
-                className="text-base p-4 border-2 rounded-xl min-h-[80px] focus:border-blue-500"
-                rows={3}
-              />
-            </div>
-
-            {/* الفئة */}
+            {/* الفئة - الحقل الأول */}
             <div className="space-y-3">
               <Label htmlFor="categoryId" className="text-base font-semibold">الفئة *</Label>
               <select
@@ -241,6 +222,17 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               {errors.categoryId && (
                 <span className="text-sm text-red-600 font-medium">{errors.categoryId.message}</span>
               )}
+            </div>
+
+            {/* التفاصيل - الحقل الثاني */}
+            <div className="space-y-3">
+              <Label htmlFor="details" className="text-base font-semibold">التفاصيل</Label>
+              <Textarea
+                {...register('details')}
+                placeholder="تفاصيل إضافية عن المصروف..."
+                className="text-base p-4 border-2 rounded-xl min-h-[80px] focus:border-blue-500"
+                rows={3}
+              />
             </div>
 
             {/* المشروع */}
