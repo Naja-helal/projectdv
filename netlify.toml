@@ -1,9 +1,11 @@
 # Netlify Configuration File
 [build]
+  # المجلد الأساسي
+  base = "web"
   # أمر البناء
-  command = "cd web && npm run build"
-  # مجلد النشر
-  publish = "web/dist"
+  command = "npm run build"
+  # مجلد النشر (نسبة للـ base)
+  publish = "dist"
 
 # إعدادات المتغيرات البيئية
 [build.environment]

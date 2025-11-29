@@ -1255,10 +1255,13 @@ app.get("/api/clients/:id", authenticateAdmin, (req, res) => {
       return res.status(404).json({ error: "العميل غير موجود" });
     }
     
-    // جلب مشاريع العميل مع الإحصائيات
+    // جلب مشاريع العميل مع الإحصائيات والتصنيف
     const projects = db.prepare(`
       SELECT 
         p.*,
+        pi.name as project_item_name,
+        pi.icon as project_item_icon,
+        pi.color as project_item_color,
         COALESCE(SUM(e.amount), 0) as total_spent,
         COUNT(e.id) as expense_count,
         CASE 
@@ -1266,6 +1269,7 @@ app.get("/api/clients/:id", authenticateAdmin, (req, res) => {
           ELSE 0 
         END as completion_percentage
       FROM projects p
+      LEFT JOIN project_items pi ON p.project_item_id = pi.id
       LEFT JOIN expenses e ON e.project_id = p.id
       WHERE p.client_id = ?
       GROUP BY p.id

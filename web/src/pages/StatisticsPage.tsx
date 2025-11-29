@@ -125,6 +125,21 @@ export default function StatisticsPage() {
     return filtered;
   }, [expenses, timeRange, startDate, endDate, selectedClientId, selectedProjectId, selectedCategoryId, projects]);
 
+  // Calculate filtered projects count
+  const filteredProjectsCount = useMemo(() => {
+    let projectsToCount = projects;
+    
+    if (selectedClientId) {
+      projectsToCount = projectsToCount.filter(p => p.client_id === selectedClientId);
+    }
+    
+    if (selectedProjectId) {
+      return 1;
+    }
+    
+    return projectsToCount.length;
+  }, [projects, selectedClientId, selectedProjectId]);
+
   // Calculate statistics
   const totalBudget = useMemo(() => {
     let projectsToCalc = projects;
@@ -324,18 +339,7 @@ export default function StatisticsPage() {
       cancelled: { count: 0, budget: 0, actual: 0 },
     };
 
-    // تصفية المشاريع حسب العميل والمشروع المختار
-    let projectsToCalculate = projects;
-    
-    if (selectedClientId) {
-      projectsToCalculate = projectsToCalculate.filter(p => p.client_id === selectedClientId);
-    }
-    
-    if (selectedProjectId) {
-      projectsToCalculate = projectsToCalculate.filter(p => p.id === selectedProjectId);
-    }
-
-    projectsToCalculate.forEach(project => {
+    projects.forEach(project => {
       const status = project.status || 'active';
       const projectExpenses = filteredExpenses.filter(e => e.project_id === project.id);
       const actualSpent = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -348,7 +352,7 @@ export default function StatisticsPage() {
     });
 
     return stats;
-  }, [projects, filteredExpenses, selectedClientId, selectedProjectId]);
+  }, [projects, filteredExpenses]);
 
   // إحصائيات شهرية
   const monthlyStats = useMemo(() => {
@@ -612,12 +616,7 @@ export default function StatisticsPage() {
             <div>
               <p className="text-blue-100 text-sm">عدد المشاريع</p>
               <h3 className="text-3xl font-bold mt-2">
-                {selectedProjectId 
-                  ? 1 
-                  : selectedClientId 
-                    ? projects.filter(p => p.client_id === selectedClientId).length 
-                    : projects.length
-                }
+                {filteredProjectsCount}
               </h3>
             </div>
             <FolderOpen className="h-12 w-12 text-blue-200" />
