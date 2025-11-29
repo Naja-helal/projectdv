@@ -5,6 +5,7 @@ import compression from "compression";
 import path from "path";
 import dotenv from "dotenv";
 import fs from "fs";
+import multer from "multer";
 
 // تحميل متغيرات البيئة
 if (process.env.NODE_ENV === 'production') {
@@ -33,7 +34,7 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
-const db = new Database(dbPath);
+let db = new Database(dbPath);
 
 // فحص وجود قاعدة البيانات
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='categories'").all() as Array<{ name: string }>;
@@ -2144,44 +2145,77 @@ app.get("/api/backup/download", authenticateAdmin, (req, res) => {
 });
 
 // رفع واستعادة نسخة احتياطية
-app.post("/api/backup/upload", authenticateAdmin, (req: any, res: any) => {
-  const multer = require('multer');
-  const upload = multer({ dest: 'uploads/' });
+const uploadMiddleware = multer({ dest: 'uploads/' });
 
-  upload.single('backup')(req, res, (err: any) => {
-    if (err) {
-      return res.status(500).json({ error: "فشل في رفع الملف" });
+app.post("/api/backup/upload", authenticateAdmin, uploadMiddleware.single('backup'), (req: any, res: any) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: "لم يتم رفع أي ملف" });
+    }
+
+    console.log("📤 Received file:", file.originalname, "Size:", file.size);
+
+    // نسخ احتياطية من القاعدة الحالية (إن وجدت)
+    const backupPath = dbPath + '.backup';
+    if (fs.existsSync(dbPath)) {
+      fs.copyFileSync(dbPath, backupPath);
+      console.log("✅ Created backup of current database");
     }
 
     try {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).json({ error: "لم يتم رفع أي ملف" });
-      }
-
       // إغلاق قاعدة البيانات الحالية
       db.close();
+      console.log("✅ Closed current database");
 
       // نسخ الملف المرفوع إلى مكان قاعدة البيانات
       fs.copyFileSync(file.path, dbPath);
+      console.log("✅ Copied uploaded file to database path");
 
       // حذف الملف المؤقت
       fs.unlinkSync(file.path);
 
+      // حذف مجلد uploads إن كان فارغاً
+      try {
+        fs.rmdirSync('uploads');
+      } catch (e) {
+        // المجلد ليس فارغاً أو غير موجود
+      }
+
       // إعادة فتح قاعدة البيانات
-      const Database = require('better-sqlite3');
-      const newDb = new Database(dbPath);
-      Object.assign(db, newDb);
+      db = new Database(dbPath);
+      console.log("✅ Reopened database");
 
       res.json({ 
         message: "تم استعادة النسخة الاحتياطية بنجاح",
         size: fs.statSync(dbPath).size 
       });
-    } catch (error) {
-      console.error("خطأ في استعادة النسخة الاحتياطية:", error);
-      res.status(500).json({ error: "خطأ في استعادة النسخة الاحتياطية" });
+    } catch (error: any) {
+      console.error("❌ Error restoring database:", error);
+      
+      // محاولة استعادة النسخة الاحتياطية
+      if (fs.existsSync(backupPath)) {
+        try {
+          fs.copyFileSync(backupPath, dbPath);
+          db = new Database(dbPath);
+          console.log("✅ Restored from backup");
+        } catch (restoreError) {
+          console.error("❌ Failed to restore backup:", restoreError);
+        }
+      }
+      
+      res.status(500).json({ 
+        error: "خطأ في استعادة النسخة الاحتياطية",
+        details: error.message 
+      });
     }
-  });
+  } catch (error: any) {
+    console.error("❌ Error in upload handler:", error);
+    res.status(500).json({ 
+      error: "خطأ في رفع الملف",
+      details: error.message 
+    });
+  }
 });
 
 // الحصول على معلومات قاعدة البيانات
