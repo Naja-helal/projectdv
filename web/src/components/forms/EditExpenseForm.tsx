@@ -282,12 +282,13 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                     {...register('quantity', { 
                       required: useQuantityMode,
                       onChange: (e) => {
+                        // السماح فقط بالأرقام والنقطة العشرية
+                        e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                         e.target.value = removeLeadingZeros(e.target.value);
                       }
                     })}
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.001"
                     placeholder="10"
                     className="text-base p-3 border-2 rounded-lg"
                     onBlur={(e) => {
@@ -303,12 +304,13 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                     {...register('unit_price', { 
                       required: useQuantityMode,
                       onChange: (e) => {
+                        // السماح فقط بالأرقام والنقطة العشرية
+                        e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                         e.target.value = removeLeadingZeros(e.target.value);
                       }
                     })}
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.001"
                     placeholder="250"
                     className="text-base p-3 border-2 rounded-lg"
                     onBlur={(e) => {
@@ -352,16 +354,21 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
                 <Label htmlFor="amount" className="text-base font-semibold">المبلغ (ريال) *</Label>
                 <Input
                   {...register('amount', { 
-                    required: !useQuantityMode, 
-                    min: { value: 0.01, message: 'يجب أن يكون المبلغ أكبر من صفر' },
+                    required: !useQuantityMode,
+                    validate: (value) => {
+                      const num = parseFloat(value);
+                      if (isNaN(num) || num <= 0) return 'يجب أن يكون المبلغ أكبر من صفر';
+                      return true;
+                    },
                     onChange: (e) => {
+                      // السماح فقط بالأرقام والنقطة العشرية
+                      e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                       e.target.value = removeLeadingZeros(e.target.value);
                     }
                   })}
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.001"
-                  placeholder="أدخل المبلغ"
+                  placeholder="أدخل المبلغ (مثال: 1.50 أو 100.609)"
                   className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
                   onBlur={(e) => {
                     e.target.value = removeLeadingZeros(e.target.value);
@@ -382,15 +389,16 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
               <Input
                 {...register('taxRate', {
                   onChange: (e) => {
+                    // السماح فقط بالأرقام والنقطة العشرية
+                    e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                     e.target.value = removeLeadingZeros(e.target.value);
                   }
                 })}
-                type="number"
+                type="text"
                 inputMode="decimal"
                 onBlur={(e) => {
                   e.target.value = removeLeadingZeros(e.target.value);
                 }}
-                step="0.001"
                 placeholder="15"
                 className="text-base p-4 border-2 rounded-xl min-h-[48px] focus:border-blue-500"
               />

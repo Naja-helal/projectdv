@@ -173,17 +173,19 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="budget" className="text-base font-semibold">قيمة العقد (ر.س)</Label>
             <Input
               id="budget"
-              type="number"
+              type="text"
               inputMode="decimal"
               min="0"
-              step="0.001"
               value={formData.budget}
               onChange={(e) => {
-                const cleaned = removeLeadingZeros(e.target.value);
-                setFormData({ ...formData, budget: parseFloat(cleaned) || 0 });
+                // السماح فقط بالأرقام والنقطة العشرية
+                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
+                setFormData({ ...formData, budget: value });
               }}
               onBlur={(e) => {
-                e.target.value = removeLeadingZeros(e.target.value);
+                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                e.target.value = cleaned;
               }}
               placeholder="0.00"
               className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
@@ -196,14 +198,15 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             <Label htmlFor="expected_spending" className="text-base font-semibold">الإنفاق المتوقع (ر.س)</Label>
             <Input
               id="expected_spending"
-              type="number"
+              type="text"
               inputMode="decimal"
               min="0"
-              step="0.001"
               value={formData.expected_spending}
               onChange={(e) => {
-                const cleaned = removeLeadingZeros(e.target.value);
-                setFormData({ ...formData, expected_spending: parseFloat(cleaned) || 0 });
+                // السماح فقط بالأرقام والنقطة العشرية
+                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
+                setFormData({ ...formData, expected_spending: value });
               }}
               onBlur={(e) => {
                 e.target.value = removeLeadingZeros(e.target.value);

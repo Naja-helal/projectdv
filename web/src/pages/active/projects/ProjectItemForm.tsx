@@ -120,17 +120,19 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
         <Label htmlFor="budget">الميزانية (ر.س)</Label>
         <Input
           id="budget"
-          type="number"
+          type="text"
           inputMode="decimal"
           min="0"
-          step="0.001"
           value={formData.budget || 0}
           onChange={(e) => {
-            const cleaned = removeLeadingZeros(e.target.value);
-            setFormData({ ...formData, budget: parseFloat(cleaned) || 0 });
+            // السماح فقط بالأرقام والنقطة العشرية
+            const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
+            setFormData({ ...formData, budget: value });
           }}
           onBlur={(e) => {
-            e.target.value = removeLeadingZeros(e.target.value);
+            const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            e.target.value = cleaned;
           }}
           placeholder="0.00"
           className={errors.budget ? 'border-red-500' : ''}
