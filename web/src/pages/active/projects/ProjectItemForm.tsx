@@ -123,16 +123,16 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
           type="text"
           inputMode="decimal"
           min="0"
-          value={formData.budget || 0}
+          value={formData.budget || ''}
           onChange={(e) => {
             // السماح فقط بالأرقام والنقطة العشرية
             const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-            const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
-            setFormData({ ...formData, budget: value });
+            setFormData({ ...formData, budget: cleaned === '' ? 0 : cleaned as any });
           }}
           onBlur={(e) => {
-            const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-            e.target.value = cleaned;
+            // عند فقدان التركيز، تحويل القيمة لرقم
+            const val = parseFloat(e.target.value) || 0;
+            setFormData({ ...formData, budget: val });
           }}
           placeholder="0.00"
           className={errors.budget ? 'border-red-500' : ''}

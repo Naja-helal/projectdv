@@ -15,13 +15,6 @@ interface ProjectFormProps {
 export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const queryClient = useQueryClient();
   
-  // دالة لإزالة الأصفار البادئة من الأرقام
-  const removeLeadingZeros = (value: string): string => {
-    if (!value || value === '' || value === '0' || value === '0.') return value;
-    const cleaned = value.replace(/^0+(?=\d)/, '');
-    return cleaned || '0';
-  };
-  
   const [formData, setFormData] = useState<CreateProjectData>({
     name: project?.name || '',
     code: project?.code || '',
@@ -180,12 +173,12 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               onChange={(e) => {
                 // السماح فقط بالأرقام والنقطة العشرية
                 const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
-                setFormData({ ...formData, budget: value });
+                setFormData({ ...formData, budget: cleaned === '' ? 0 : cleaned as any });
               }}
               onBlur={(e) => {
-                const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                e.target.value = cleaned;
+                // عند فقدان التركيز، تحويل القيمة لرقم
+                const val = parseFloat(e.target.value) || 0;
+                setFormData({ ...formData, budget: val });
               }}
               placeholder="0.00"
               className={`min-h-[48px] text-base border-2 rounded-xl ${errors.budget ? 'border-red-500' : ''}`}
@@ -205,11 +198,12 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               onChange={(e) => {
                 // السماح فقط بالأرقام والنقطة العشرية
                 const cleaned = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                const value = cleaned === '' ? 0 : parseFloat(cleaned) || 0;
-                setFormData({ ...formData, expected_spending: value });
+                setFormData({ ...formData, expected_spending: cleaned === '' ? 0 : cleaned as any });
               }}
               onBlur={(e) => {
-                e.target.value = removeLeadingZeros(e.target.value);
+                // عند فقدان التركيز، تحويل القيمة لرقم
+                const val = parseFloat(e.target.value) || 0;
+                setFormData({ ...formData, expected_spending: val });
               }}
               placeholder="0.00"
               className={`min-h-[48px] text-base border-2 rounded-xl ${errors.expected_spending ? 'border-red-500' : ''}`}
