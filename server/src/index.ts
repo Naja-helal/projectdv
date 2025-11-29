@@ -829,7 +829,7 @@ app.post("/api/expenses", (req, res) => {
     console.log("\n🔵 POST /api/expenses - البيانات المستلمة:", JSON.stringify(req.body, null, 2));
     
     const {
-      categoryId, projectId, projectItemId,
+      categoryId, projectId,
       quantity = 1, unit_price, unit_id,
       amount, taxRate = 0, date,
       paymentMethodId, 
@@ -867,24 +867,18 @@ app.post("/api/expenses", (req, res) => {
       // قاعدة البيانات محدثة - استخدام الكود الكامل
       stmt = db.prepare(`
         INSERT INTO expenses
-          (category_id, project_id, project_item_id, 
-           quantity, unit_price, unit_id, amount, 
-           tax_rate, tax_amount, total_amount,
+          (category_id, project_id, 
+           quantity, unit_id, amount, 
            payment_method_id, date, 
            description, details, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
         projectId || null,
-        projectItemId || null,
         quantity || 1,
-        unit_price || calculatedAmount,
         unit_id || null,
         calculatedAmount, 
-        taxRate, 
-        taxAmount, 
-        totalAmount,
         paymentMethodId || null,
         date, 
         description || null,
@@ -895,36 +889,33 @@ app.post("/api/expenses", (req, res) => {
       // قاعدة البيانات قديمة - بدون description و details
       stmt = db.prepare(`
         INSERT INTO expenses
-          (category_id, project_id, project_item_id, 
-           quantity, unit_price, unit_id, amount, 
-           tax_rate, tax_amount, total_amount,
+          (category_id, project_id, 
+           quantity, unit_id, amount, 
            payment_method_id, date, 
            notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
       params = [
         categoryId,
         projectId || null,
-        projectItemId || null,
         quantity || 1,
-        unit_price || calculatedAmount,
         unit_id || null,
-        calculatedAmount, 
-        taxRate, 
-        taxAmount, 
-        totalAmount,
+        calculatedAmount,
         paymentMethodId || null,
-        date, 
+        date,
         notes || null
       ];
     }
-    
-    const info = stmt.run(...params);
 
-    console.log("✅ تم إدراج المصروف برقم:", info.lastInsertRowid);
+    console.log("📝 الـ SQL Statement:", stmt.source);
+    console.log("📊 القيم:", params);
+
+    const result = stmt.run(...params); 
+
+    console.log("✅ تم إدراج المصروف برقم:", result.lastInsertRowid);
     console.log("📊 المعاملات المرسلة:", params);
 
-    const expenseId = info.lastInsertRowid;
+    const expenseId = result.lastInsertRowid;
 
     // حفظ الحقول المخصصة
     if (customFields && typeof customFields === 'object') {
