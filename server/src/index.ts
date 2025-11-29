@@ -18,48 +18,10 @@ if (process.env.NODE_ENV === 'production') {
 const app = express();
 const PORT = process.env.PORT || 5175;
 
-// إعداد قاعدة البيانات - استخدام /app/data للـ Volume في Railway
-const isProduction = process.env.NODE_ENV === 'production';
-const dbPath = isProduction 
-  ? '/app/data/expenses.db'  // مسار ثابت في Railway Volume
-  : process.env.DB_PATH || path.join(__dirname, "../expenses.db");
+// إعداد قاعدة البيانات - مسار بسيط بدون تعقيدات
+const dbPath = path.join(__dirname, "../expenses.db");
 
 console.log(`📂 مسار قاعدة البيانات: ${dbPath}`);
-console.log(`🌍 البيئة: ${isProduction ? 'الإنتاج' : 'التطوير'}`);
-
-// إنشاء المجلد إذا لم يكن موجوداً
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-  console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
-}
-
-// في الإنتاج: نسخ قاعدة البيانات من المشروع إلى Volume إذا لم تكن موجودة
-if (isProduction && !fs.existsSync(dbPath)) {
-  // في Railway: المشروع في /app والسيرفر في /app/server
-  const possiblePaths = [
-    path.join(__dirname, '../expenses.db'),  // من dist إلى server
-    '/app/server/expenses.db',               // مسار مباشر في Railway
-    path.join(process.cwd(), 'expenses.db'), // من root المشروع
-  ];
-  
-  let sourceDbPath = '';
-  for (const testPath of possiblePaths) {
-    if (fs.existsSync(testPath)) {
-      sourceDbPath = testPath;
-      break;
-    }
-  }
-  
-  if (sourceDbPath) {
-    console.log(`📋 نسخ قاعدة البيانات من ${sourceDbPath} إلى ${dbPath}`);
-    fs.copyFileSync(sourceDbPath, dbPath);
-    console.log('✅ تم نسخ قاعدة البيانات بنجاح');
-  } else {
-    console.log(`⚠️ قاعدة البيانات المصدر غير موجودة في أي من المسارات المحتملة`);
-    console.log('المسارات المفحوصة:', possiblePaths);
-  }
-}
 
 let db = new Database(dbPath);
 
