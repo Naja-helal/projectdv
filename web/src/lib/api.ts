@@ -300,7 +300,7 @@ export const clientApi = {
   
   updateClient: (id: number, data: Partial<CreateClientData>): Promise<{ ok: boolean }> => {
     return apiRequest(`/clients/${id}`, {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify(data),
     })
   },

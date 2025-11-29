@@ -15,6 +15,8 @@ import ProjectsPage from './pages/active/projects/ProjectsPage'
 import ProjectDetailsPage from './pages/active/projects/ProjectDetailsPage'
 import StatisticsPage from './pages/StatisticsPage'
 import ChartsPage from './pages/ChartsPage'
+import BackupPage from './pages/BackupPage'
+import DatabaseSyncPage from './pages/DatabaseSyncPage'
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
               <Route path="/projects/:id" element={<ProjectDetailsPage />} />
               <Route path="/statistics" element={<StatisticsPage />} />
               <Route path="/charts" element={<ChartsPage />} />
+              <Route path="/backup" element={<BackupPage />} />
+              <Route path="/database-sync" element={<DatabaseSyncPage />} />
             </Routes>
           </Layout>
         </ProtectedRoute>

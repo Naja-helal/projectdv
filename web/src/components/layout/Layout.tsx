@@ -23,6 +23,8 @@ const settingsNavigation = [
   { name: 'تصنيف المشاريع', href: '/project-items', icon: '📦' },
   { name: 'طرق الدفع', href: '/payment-methods', icon: '💳' },
   { name: 'الوحدات', href: '/units', icon: '📏' },
+  { name: 'النسخ الاحتياطي', href: '/backup', icon: '💾' },
+  { name: 'مزامنة قاعدة البيانات', href: '/database-sync', icon: '🔄' },
 ]
 
 export default function Layout({ children }: LayoutProps) {

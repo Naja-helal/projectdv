@@ -178,14 +178,7 @@ export default function ClientDetails() {
       {/* Projects Section */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>المشاريع ({client.projects?.length || 0})</CardTitle>
-            <Button
-              onClick={() => navigate('/projects/new', { state: { clientId: client.id } })}
-            >
-              إضافة مشروع جديد
-            </Button>
-          </div>
+          <CardTitle>المشاريع ({client.projects?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           {!client.projects || client.projects.length === 0 ? (
