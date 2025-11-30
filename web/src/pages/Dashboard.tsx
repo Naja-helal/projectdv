@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useQuery } from "@tanstack/react-query"
-import { projectApi, expenseApi, categoryApi, projectItemApi, paymentMethodApi } from "@/lib/api"
+import { projectsApi, expensesApi, categoriesApi, projectItemsApi, paymentMethodsApi, clientsApi, unitsApi } from "@/lib/supabaseApi"
 import { useNavigate } from "react-router-dom"
 import { Expense } from "@/types"
 
@@ -11,77 +11,46 @@ export default function Dashboard() {
   // جلب الإحصائيات من جميع الأنظمة
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ['expenses'],
-    queryFn: () => expenseApi.getExpenses()
+    queryFn: () => expensesApi.getAll()
   })
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   const { data: projectItems = [] } = useQuery({
     queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems
+    queryFn: projectItemsApi.getAll
   })
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryFn: paymentMethodsApi.getAll
   })
 
   // جلب العملاء
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/clients`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      if (!response.ok) throw new Error('Failed to fetch clients')
-      return response.json()
-    }
-  })
-
-  // جلب الإنفاق المتوقع
-  const { data: expectedExpenses = [] } = useQuery({
-    queryKey: ['expected-expenses'],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/expected-expenses`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      if (!response.ok) throw new Error('Failed to fetch expected expenses')
-      return response.json()
-    }
+    queryFn: clientsApi.getAll
   })
 
   // جلب الوحدات
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
-    queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/units`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      if (!response.ok) throw new Error('Failed to fetch units')
-      return response.json()
-    }
+    queryFn: unitsApi.getAll
   })
 
   // حساب الإحصائيات
   const totalExpenses = expenses.reduce((sum: number, exp: Expense) => sum + (exp.amount || 0), 0)
   const activeProjects = projects.filter(p => p.status === 'active').length
   const totalBudget = projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0)
-  const totalExpectedExpenses = expectedExpenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
-  const activeClients = clients.filter((c: any) => c.is_active).length
+  const activeClients = clients.filter((c: any) => c.is_active !== false).length
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -193,24 +162,6 @@ export default function Dashboard() {
             </div>
             <div className="text-sm sm:text-base text-orange-600 font-medium">
               عميل ({activeClients} نشط)
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-              onClick={() => navigate('/expected-expenses')}>
-          <CardContent className="p-4 sm:p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
-              📊
-            </div>
-            <div className="text-3xl sm:text-4xl font-bold text-pink-700 mb-2">
-              {expectedExpenses.length}
-            </div>
-            <div className="text-sm sm:text-base text-pink-600 font-medium">
-              إنفاق متوقع
-            </div>
-            <div className="text-xs text-pink-500 mt-2">
-              الإجمالي: {totalExpectedExpenses.toLocaleString()} ر.س
             </div>
           </CardContent>
         </Card>
