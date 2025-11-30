@@ -27,7 +27,7 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
-// نسخ قاعدة البيانات الأولية في بيئة الإنتاج
+// نسخ قاعدة البيانات الأولية في بيئة الإنتاج أولاً
 if (process.env.NODE_ENV === 'production') {
   const sourceDb = path.join(__dirname, "../expenses-production.db");
   if (fs.existsSync(sourceDb)) {
@@ -41,17 +41,19 @@ if (process.env.NODE_ENV === 'production') {
     }
     
     fs.copyFileSync(sourceDb, dbPath);
-    console.log(`✅ تم نسخ قاعدة البيانات بنجاح`);
+    console.log(`✅ تم نسخ قاعدة البيانات بنجاح - تخطي Auto-Migration`);
   } else {
     console.log(`⚠️ لم يتم العثور على: ${sourceDb}`);
+    console.log(`📝 سيتم إنشاء قاعدة بيانات جديدة`);
   }
 }
 
 const db = new Database(dbPath);
 
-// تحديث schema تلقائياً عند بدء التشغيل
-try {
-  console.log('🔧 بدء Auto-Migration...');
+// تحديث schema تلقائياً عند بدء التشغيل (فقط في حالة عدم وجود قاعدة بيانات production)
+if (process.env.NODE_ENV !== 'production' || !fs.existsSync(path.join(__dirname, "../expenses-production.db"))) {
+  try {
+    console.log('🔧 بدء Auto-Migration...');
   
   // ===== إنشاء الجداول الأساسية إذا لم تكن موجودة =====
   
@@ -299,8 +301,11 @@ try {
   
   console.log('✅ Auto-Migration مكتمل!\n');
 
-} catch (error) {
-  console.error('⚠️ خطأ في تحديث schema:', error);
+  } catch (error) {
+    console.error('⚠️ خطأ في تحديث schema:', error);
+  }
+} else {
+  console.log('✅ تم تحميل قاعدة البيانات من Production - تخطي Auto-Migration\n');
 }
 
 // إعداد المتوسطات (Middleware)
