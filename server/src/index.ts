@@ -27,24 +27,13 @@ if (!fs.existsSync(dbDir)) {
   console.log(`✅ تم إنشاء مجلد قاعدة البيانات: ${dbDir}`);
 }
 
-// نسخ قاعدة البيانات الأولية في بيئة الإنتاج أولاً
+// نسخ قاعدة البيانات في Production
 if (process.env.NODE_ENV === 'production') {
-  const sourceDb = path.join(__dirname, "../expenses-production.db");
+  const sourceDb = path.join(__dirname, "../production.db");
   if (fs.existsSync(sourceDb)) {
-    console.log(`📋 نسخ قاعدة البيانات من: ${sourceDb}`);
-    console.log(`📂 إلى: ${dbPath}`);
-    
-    // حذف القاعدة القديمة إذا كانت موجودة
-    if (fs.existsSync(dbPath)) {
-      console.log(`🗑️ حذف قاعدة البيانات القديمة...`);
-      fs.unlinkSync(dbPath);
-    }
-    
+    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     fs.copyFileSync(sourceDb, dbPath);
-    console.log(`✅ تم نسخ قاعدة البيانات بنجاح - تخطي Auto-Migration`);
-  } else {
-    console.log(`⚠️ لم يتم العثور على: ${sourceDb}`);
-    console.log(`📝 سيتم إنشاء قاعدة بيانات جديدة`);
+    console.log('✅ تم نسخ قاعدة البيانات');
   }
 }
 
