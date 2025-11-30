@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { categoryApi } from '@/lib/api'
+import { categoriesApi } from '@/lib/supabaseApi'
 import type { Category } from '@/types'
 
 interface DeleteCategoryDialogProps {
@@ -22,7 +22,7 @@ export default function DeleteCategoryDialog({ category, open, onClose }: Delete
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({
-    mutationFn: (categoryId: number) => categoryApi.deleteCategory(categoryId),
+    mutationFn: (categoryId: number) => categoriesApi.delete(categoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       onClose()

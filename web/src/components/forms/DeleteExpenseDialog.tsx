@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { expenseApi } from '@/lib/api'
+import { expensesApi } from '@/lib/supabaseApi'
 import type { Expense } from '@/types'
 
 interface DeleteExpenseDialogProps {
@@ -22,7 +22,7 @@ export default function DeleteExpenseDialog({ expense, open, onClose }: DeleteEx
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({
-    mutationFn: (expenseId: number) => expenseApi.deleteExpense(expenseId),
+    mutationFn: (expenseId: number) => expensesApi.delete(expenseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })

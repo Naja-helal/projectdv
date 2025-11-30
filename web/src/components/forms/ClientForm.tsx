@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientApi } from '@/lib/api';
+import { clientsApi } from '@/lib/supabaseApi';
 import { CreateClientData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ export default function ClientForm({ onSuccess }: ClientFormProps) {
 
   // إنشاء عميل جديد
   const mutation = useMutation({
-    mutationFn: clientApi.createClient,
+    mutationFn: clientsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });

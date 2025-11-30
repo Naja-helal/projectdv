@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { categoryApi } from '@/lib/api'
+import { categoriesApi } from '@/lib/supabaseApi'
 import type { Category, CreateCategoryData } from '@/types'
 
 interface EditCategoryFormProps {
@@ -48,7 +48,7 @@ export default function EditCategoryForm({ category, open, onClose }: EditCatego
   // mutation لتحديث الفئة
   const updateMutation = useMutation({
     mutationFn: (data: CreateCategoryData) => 
-      categoryApi.updateCategory(category!.id, data),
+      categoriesApi.update(category!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       reset()

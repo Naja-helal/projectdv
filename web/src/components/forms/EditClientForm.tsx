@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientApi } from '@/lib/api';
+import { clientsApi } from '@/lib/supabaseApi';
 import { Client, CreateClientData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ export default function EditClientForm({ client, onSuccess }: EditClientFormProp
 
   // تحديث عميل
   const mutation = useMutation({
-    mutationFn: (data: Partial<CreateClientData>) => clientApi.updateClient(client.id, data),
+    mutationFn: (data: Partial<CreateClientData>) => clientsApi.update(client.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });

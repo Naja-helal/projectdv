@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { unitApi } from '@/lib/api'
+import { unitsApi } from '@/lib/supabaseApi'
 import type { Unit } from '@/types'
 
 interface EditUnitFormProps {
@@ -54,7 +54,7 @@ export default function EditUnitForm({ unit, open, onOpenChange, onSuccess }: Ed
 
   const updateMutation = useMutation({
     mutationFn: (data: FormData) => 
-      unitApi.updateUnit(unit!.id, data),
+      unitsApi.update(unit!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] })
       onSuccess()

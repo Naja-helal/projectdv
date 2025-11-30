@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { categoryApi } from '@/lib/api'
+import { categoriesApi } from '@/lib/supabaseApi'
 import type { CreateCategoryData } from '@/types'
 
 interface AddCategoryFormProps {
@@ -31,7 +31,7 @@ export default function AddCategoryForm({ open, onClose }: AddCategoryFormProps)
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateCategoryData) => categoryApi.createCategory(data),
+    mutationFn: (data: CreateCategoryData) => categoriesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       setFormData({

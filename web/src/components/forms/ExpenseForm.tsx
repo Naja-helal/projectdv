@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { expenseApi, categoryApi, projectApi, paymentMethodApi, unitApi } from '@/lib/api'
+import { expensesApi, categoriesApi, projectsApi, paymentMethodsApi, unitsApi } from '@/lib/supabaseApi'
 import type { CreateExpenseData } from '@/types'
 
 interface ExpenseFormProps {
@@ -70,29 +70,29 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
   // جلب البيانات المرجعية
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   // جلب جميع طرق الدفع المستقلة
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryFn: paymentMethodsApi.getAll
   })
 
   // جلب جميع الوحدات
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
-    queryFn: unitApi.getUnits
+    queryFn: unitsApi.getAll
   })
 
   // mutation لإضافة المصروف
   const createMutation = useMutation({
-    mutationFn: (data: CreateExpenseData) => expenseApi.createExpense(data),
+    mutationFn: (data: CreateExpenseData) => expensesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })

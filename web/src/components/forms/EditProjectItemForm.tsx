@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { projectItemApi } from '@/lib/api'
+import { projectItemsApi } from '@/lib/supabaseApi'
 import type { ProjectItem, CreateProjectItemData } from '@/types'
 
 interface EditProjectItemFormProps {
@@ -47,7 +47,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
 
   const updateMutation = useMutation({
     mutationFn: (data: CreateProjectItemData) => 
-      projectItemApi.updateProjectItem(projectItem!.id, data),
+      projectItemsApi.update(projectItem!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-items'] })
       onClose()

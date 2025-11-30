@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { expenseApi, categoryApi, projectApi, paymentMethodApi, unitApi } from '@/lib/api'
+import { expensesApi, categoriesApi, projectsApi, paymentMethodsApi, unitsApi } from '@/lib/supabaseApi'
 import type { CreateExpenseData, Expense } from '@/types'
 
 interface EditExpenseFormProps {
@@ -71,24 +71,24 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
   // جلب البيانات المرجعية
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   // جلب جميع طرق الدفع المستقلة
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryFn: paymentMethodsApi.getAll
   })
 
   // جلب جميع الوحدات
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
-    queryFn: unitApi.getUnits
+    queryFn: unitsApi.getAll
   })
 
   // تحميل بيانات المصروف عند فتح الفورم
@@ -120,7 +120,7 @@ export default function EditExpenseForm({ expense, open, onClose }: EditExpenseF
   // mutation لتحديث المصروف
   const updateMutation = useMutation({
     mutationFn: (data: CreateExpenseData & { id: number }) => 
-      expenseApi.updateExpense(data.id, data),
+      expensesApi.update(data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })

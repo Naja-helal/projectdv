@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { paymentMethodApi } from '@/lib/api'
+import { paymentMethodsApi } from '@/lib/supabaseApi'
 import type { PaymentMethod, CreatePaymentMethodData } from '@/types'
 
 interface EditPaymentMethodFormProps {
@@ -45,7 +45,7 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
 
   const updateMutation = useMutation({
     mutationFn: (data: CreatePaymentMethodData) => 
-      paymentMethodApi.updatePaymentMethod(paymentMethod!.id, data),
+      paymentMethodsApi.update(paymentMethod!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       onClose()
