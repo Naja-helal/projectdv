@@ -1,12 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
-
-// Debug: طباعة API_BASE
-console.log('🔧 AuthContext API_BASE:', API_BASE)
-console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL)
-console.log('🔧 Mode:', import.meta.env.MODE)
-
 interface AuthContextType {
   isAuthenticated: boolean
   login: (token: string) => void
@@ -27,7 +20,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkAuth = async (): Promise<boolean> => {
     const token = localStorage.getItem('adminToken')
-    console.log('🔍 checkAuth - Token:', token ? 'موجود' : 'غير موجود')
     
     if (!token) {
       setIsAuthenticated(false)
@@ -35,69 +27,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return false
     }
 
-    try {
-      // التحقق من صلاحية الرمز مع الخادم
-      const url = `${API_BASE}/auth/verify`
-      console.log('📡 Fetching:', url)
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      console.log('📥 Response status:', response.status, response.statusText)
-
-      if (response.ok) {
-        console.log('✅ Auth verified successfully')
-        setIsAuthenticated(true)
-        setIsLoading(false)
-        return true
-      } else {
-        console.log('⚠️ Auth verification failed, trying refresh...')
-        // إذا كان الرمز غير صالح، جرب تجديده
-        const refreshed = await refreshToken()
-        setIsLoading(false)
-        return refreshed
-      }
-    } catch (error) {
-      console.error('❌ خطأ في التحقق من الصلة:', error)
-      logout()
-      setIsLoading(false)
-      return false
-    }
+    // مصادقة بسيطة بدون backend - التحقق من وجود الرمز فقط
+    setIsAuthenticated(true)
+    setIsLoading(false)
+    return true
   }
 
   const refreshToken = async (): Promise<boolean> => {
-    const token = localStorage.getItem('adminToken')
-    if (!token) {
-      return false
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('adminToken', data.token)
-        setIsAuthenticated(true)
-        return true
-      } else {
-        logout()
-        return false
-      }
-    } catch (error) {
-      console.error('خطأ في تجديد الرمز:', error)
-      logout()
-      return false
-    }
+    // لا حاجة للتجديد في النظام البسيط
+    return isAuthenticated
   }
 
   const login = (token: string) => {
@@ -112,15 +50,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     checkAuth()
-    
-    // إعداد تجديد تلقائي كل 30 دقيقة
-    const refreshInterval = setInterval(() => {
-      if (isAuthenticated) {
-        refreshToken()
-      }
-    }, 30 * 60 * 1000) // 30 دقيقة
-
-    return () => clearInterval(refreshInterval)
   }, [])
 
   // عرض شاشة تحميل أثناء التحقق من الصلة

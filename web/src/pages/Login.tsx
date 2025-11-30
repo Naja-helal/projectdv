@@ -21,12 +21,13 @@ export default function Login() {
     setError('')
 
     try {
-      // استخدام authAPI المحدث
-      const { authAPI } = await import('@/lib/api')
-      const data = await authAPI.login(username, password)
-      
-      login(data.token) // استخدام دالة login من AuthContext
-      navigate('/', { replace: true }) // إجبار التوجيه مع replace
+      // مصادقة بسيطة محلية
+      if (username === 'admin' && password === 'A@asd123') {
+        login('simple-admin-token')
+        navigate('/', { replace: true })
+      } else {
+        setError('اسم المستخدم أو كلمة المرور غير صحيحة')
+      }
     } catch (error: any) {
       setError(error.message || 'خطأ في تسجيل الدخول')
     } finally {
