@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار اتصال Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .section h2 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .info {
+            color: #3b82f6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 اختبار اتصال Supabase</h1>
+        
+        <div class="section">
+            <h2>📊 اختبار قراءة البيانات</h2>
+            <button onclick="testExpenses()">🧾 جلب المصروفات</button>
+            <button onclick="testCategories()">📁 جلب التصنيفات</button>
+            <button onclick="testUnits()">📏 جلب الوحدات</button>
+            <button onclick="testPaymentMethods()">💳 جلب طرق الدفع</button>
+            <button onclick="testAll()">🎯 اختبار الكل</button>
+            <div id="readResults" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>✍️ اختبار الكتابة</h2>
+            <button onclick="testCreateExpense()">➕ إضافة مصروف تجريبي</button>
+            <button onclick="testUpdateExpense()">✏️ تعديل مصروف</button>
+            <button onclick="testDeleteExpense()">🗑️ حذف مصروف</button>
+            <div id="writeResults" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>📈 إحصائيات</h2>
+            <button onclick="getStats()">📊 عرض الإحصائيات</button>
+            <div id="statsResults" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Supabase
+        const SUPABASE_URL = 'https://ekezjmhpdzydiczspfsm.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXpqbWhwZHp5ZGljenNwZnNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODU5MzcsImV4cCI6MjA4MDA2MTkzN30.WhOebC0eJ73ztpnRT0bUbyPdt9yvCkJN3EuyT7SAVPA'
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId)
+            const timestamp = new Date().toLocaleTimeString('ar-SA')
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'
+            element.innerHTML += `<div class="${type}">[${timestamp}] ${icon} ${message}</div>`
+        }
+
+        async function testExpenses() {
+            const resultDiv = document.getElementById('readResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري جلب المصروفات...</div>'
+            
+            try {
+                const { data, error } = await supabase
+                    .from('expenses')
+                    .select('*')
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم جلب ${data.length} مصروف</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testCategories() {
+            const resultDiv = document.getElementById('readResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري جلب التصنيفات...</div>'
+            
+            try {
+                const { data, error } = await supabase
+                    .from('categories')
+                    .select('*')
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم جلب ${data.length} تصنيف</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testUnits() {
+            const resultDiv = document.getElementById('readResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري جلب الوحدات...</div>'
+            
+            try {
+                const { data, error } = await supabase
+                    .from('units')
+                    .select('*')
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم جلب ${data.length} وحدة</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testPaymentMethods() {
+            const resultDiv = document.getElementById('readResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري جلب طرق الدفع...</div>'
+            
+            try {
+                const { data, error } = await supabase
+                    .from('payment_methods')
+                    .select('*')
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم جلب ${data.length} طريقة دفع</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testAll() {
+            const resultDiv = document.getElementById('readResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري اختبار جميع الجداول...</div>'
+            
+            const tables = ['categories', 'expenses', 'units', 'payment_methods', 'projects', 'project_items', 'clients', 'expected_expenses']
+            const results = {}
+            
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select('*')
+                    
+                    if (error) throw error
+                    results[table] = { count: data.length, status: 'success' }
+                } catch (error) {
+                    results[table] = { error: error.message, status: 'error' }
+                }
+            }
+            
+            resultDiv.innerHTML = '<div class="success">✅ اكتمل الاختبار</div>'
+            resultDiv.innerHTML += '<table style="width:100%; border-collapse: collapse; margin-top: 10px;">'
+            resultDiv.innerHTML += '<tr style="background:#667eea; color:white;"><th style="padding:10px;">الجدول</th><th>العدد</th><th>الحالة</th></tr>'
+            
+            for (const [table, result] of Object.entries(results)) {
+                const status = result.status === 'success' ? 
+                    `<span class="success">${result.count} سجلات</span>` : 
+                    `<span class="error">${result.error}</span>`
+                resultDiv.innerHTML += `<tr style="border-bottom:1px solid #e0e0e0;"><td style="padding:10px;">${table}</td><td>${result.status === 'success' ? result.count : 'خطأ'}</td><td>${status}</td></tr>`
+            }
+            resultDiv.innerHTML += '</table>'
+        }
+
+        async function testCreateExpense() {
+            const resultDiv = document.getElementById('writeResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري إضافة مصروف تجريبي...</div>'
+            
+            try {
+                const { data, error } = await supabase
+                    .from('expenses')
+                    .insert([
+                        {
+                            description: 'مصروف تجريبي من اختبار الاتصال',
+                            amount: 100,
+                            date: new Date().toISOString().split('T')[0],
+                            category_id: 1,
+                            payment_method_id: 1
+                        }
+                    ])
+                    .select()
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تمت إضافة المصروف بنجاح</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testUpdateExpense() {
+            const resultDiv = document.getElementById('writeResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري البحث عن آخر مصروف للتعديل...</div>'
+            
+            try {
+                // جلب آخر مصروف
+                const { data: expenses, error: fetchError } = await supabase
+                    .from('expenses')
+                    .select('*')
+                    .order('id', { ascending: false })
+                    .limit(1)
+                
+                if (fetchError) throw fetchError
+                if (!expenses || expenses.length === 0) {
+                    resultDiv.innerHTML = '<div class="error">❌ لا توجد مصروفات للتعديل</div>'
+                    return
+                }
+                
+                // تعديل المصروف
+                const { data, error } = await supabase
+                    .from('expenses')
+                    .update({ 
+                        description: 'مصروف معدّل - ' + new Date().toLocaleTimeString('ar-SA'),
+                        amount: 200
+                    })
+                    .eq('id', expenses[0].id)
+                    .select()
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم تعديل المصروف #${expenses[0].id}</div>`
+                resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function testDeleteExpense() {
+            const resultDiv = document.getElementById('writeResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري البحث عن آخر مصروف للحذف...</div>'
+            
+            try {
+                // جلب آخر مصروف تجريبي
+                const { data: expenses, error: fetchError } = await supabase
+                    .from('expenses')
+                    .select('*')
+                    .ilike('description', '%تجريبي%')
+                    .order('id', { ascending: false })
+                    .limit(1)
+                
+                if (fetchError) throw fetchError
+                if (!expenses || expenses.length === 0) {
+                    resultDiv.innerHTML = '<div class="error">❌ لا توجد مصروفات تجريبية للحذف</div>'
+                    return
+                }
+                
+                // حذف المصروف
+                const { error } = await supabase
+                    .from('expenses')
+                    .delete()
+                    .eq('id', expenses[0].id)
+                
+                if (error) throw error
+                
+                resultDiv.innerHTML = `<div class="success">✅ تم حذف المصروف #${expenses[0].id}</div>`
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        async function getStats() {
+            const resultDiv = document.getElementById('statsResults')
+            resultDiv.innerHTML = '<div class="info">⏳ جاري حساب الإحصائيات...</div>'
+            
+            try {
+                const tables = ['categories', 'expenses', 'units', 'payment_methods', 'projects', 'project_items']
+                const stats = {}
+                
+                for (const table of tables) {
+                    const { count, error } = await supabase
+                        .from(table)
+                        .select('*', { count: 'exact', head: true })
+                    
+                    if (error) throw error
+                    stats[table] = count
+                }
+                
+                // حساب مجموع المصروفات
+                const { data: expenses } = await supabase
+                    .from('expenses')
+                    .select('amount')
+                
+                const totalAmount = expenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ الإحصائيات:</div>
+                    <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+                        <tr style="background:#667eea; color:white;">
+                            <th style="padding:10px;">الجدول</th>
+                            <th>العدد</th>
+                        </tr>
+                        <tr><td style="padding:10px;">📁 التصنيفات</td><td>${stats.categories}</td></tr>
+                        <tr><td style="padding:10px;">🧾 المصروفات</td><td>${stats.expenses}</td></tr>
+                        <tr><td style="padding:10px;">📏 الوحدات</td><td>${stats.units}</td></tr>
+                        <tr><td style="padding:10px;">💳 طرق الدفع</td><td>${stats.payment_methods}</td></tr>
+                        <tr><td style="padding:10px;">📋 المشاريع</td><td>${stats.projects}</td></tr>
+                        <tr><td style="padding:10px;">📦 بنود المشاريع</td><td>${stats.project_items}</td></tr>
+                        <tr style="background:#f0f0f0; font-weight:bold;">
+                            <td style="padding:10px;">💰 مجموع المصروفات</td>
+                            <td>${totalAmount.toLocaleString('ar-SA')} ريال</td>
+                        </tr>
+                    </table>
+                `
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ خطأ: ${error.message}</div>`
+            }
+        }
+
+        // اختبار تلقائي عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            console.log('🔌 Supabase Client initialized')
+            console.log('🌐 URL:', SUPABASE_URL)
+            testAll()
+        })
+    </script>
+</body>
+</html>
