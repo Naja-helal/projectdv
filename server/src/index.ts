@@ -1384,19 +1384,14 @@ app.delete("/api/clients/:id", authenticateAdmin, (req, res) => {
   try {
     const { id } = req.params;
     
-    // التحقق من وجود مشاريع مرتبطة
-    const projectsCount = db.prepare(`
-      SELECT COUNT(*) as count FROM projects WHERE client_id = ?
-    `).get(id) as { count: number };
+    // حذف جميع مشاريع العميل (والباقي سيُحذف تلقائياً بـ CASCADE)
+    db.prepare(`
+      DELETE FROM projects WHERE client_id = ?
+    `).run(id);
     
-    if (projectsCount.count > 0) {
-      return res.status(400).json({ 
-        error: `لا يمكن حذف العميل لأن لديه ${projectsCount.count} مشروع مرتبط. قم بإلغاء تفعيله بدلاً من ذلك.` 
-      });
-    }
-    
+    // حذف العميل نفسه
     const result = db.prepare(`
-      UPDATE clients SET is_active = 0 WHERE id = ?
+      DELETE FROM clients WHERE id = ?
     `).run(id);
     
     if (result.changes === 0) {
@@ -1712,15 +1707,25 @@ app.delete("/api/projects/:id", authenticateAdmin, (req, res) => {
       console.log('⚠️ جدول project_items غير موجود أو حدث خطأ:', itemsError);
     }
     
-    // إزالة ارتباط المصروفات بالمشروع
+    // حذف أو فصل جميع البيانات المرتبطة بالمشروع
+    
+    // 1. حذف الإنفاق المتوقع المرتبط بالمشروع
+    try {
+      const expectedResult = db.prepare("DELETE FROM expected_expenses WHERE project_id = ?").run(id);
+      console.log(`✅ تم حذف ${expectedResult.changes} إنفاق متوقع مرتبط بالمشروع`);
+    } catch (expectedError) {
+      console.log('⚠️ خطأ في حذف الإنفاق المتوقع:', expectedError);
+    }
+    
+    // 2. إزالة ارتباط المصروفات بالمشروع (نحتفظ بالمصروفات لكن نفصلها)
     try {
       const expensesResult = db.prepare("UPDATE expenses SET project_id = NULL, project_item_id = NULL WHERE project_id = ?").run(id);
-      console.log(`✅ تم تحديث ${expensesResult.changes} مصروف`);
+      console.log(`✅ تم فصل ${expensesResult.changes} مصروف عن المشروع`);
     } catch (expensesError) {
       console.log('⚠️ خطأ في تحديث المصروفات:', expensesError);
     }
     
-    // حذف المشروع
+    // 3. حذف المشروع
     const result = db.prepare("DELETE FROM projects WHERE id = ?").run(id);
     console.log(`✅ نتيجة حذف المشروع: ${result.changes} صف محذوف`);
     
