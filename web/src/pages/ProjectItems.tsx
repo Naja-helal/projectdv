@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { projectItemApi } from '@/lib/api'
+import { projectItemsApi } from '@/lib/supabaseApi'
 import EditProjectItemForm from '@/components/forms/EditProjectItemForm'
 import type { ProjectItem } from '@/types'
 
@@ -29,8 +29,8 @@ export default function ProjectItems() {
 
   // جلب عناصر المشروع
   const { data: projectItems = [], isLoading, error } = useQuery({
-    queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems
+    queryKey: ['projectItems'],
+    queryFn: projectItemsApi.getAll
   })
 
   // نموذج إضافة عنصر
@@ -38,7 +38,7 @@ export default function ProjectItems() {
 
   // إضافة عنصر جديد
   const createMutation = useMutation({
-    mutationFn: (data: CreateProjectItemData) => projectItemApi.createProjectItem(data),
+    mutationFn: (data: CreateProjectItemData) => projectItemsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-items'] })
       reset()
@@ -51,7 +51,7 @@ export default function ProjectItems() {
 
   // حذف عنصر
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => projectItemApi.deleteProjectItem(id),
+    mutationFn: (id: number) => projectItemsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-items'] })
     }

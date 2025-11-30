@@ -1,0 +1,302 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "عمالة",
+      "code": "labor",
+      "color": "#ef4444",
+      "icon": "👷",
+      "description": null,
+      "created_at": 1757591303,
+      "updated_at": 1757591303
+    },
+    {
+      "id": 3,
+      "name": "Cursor",
+      "code": "Cursor",
+      "color": "#06b6d4",
+      "icon": "🌐",
+      "description": "",
+      "created_at": 1757591303,
+      "updated_at": 1757701350
+    },
+    {
+      "id": 6,
+      "name": "المكتبة",
+      "code": "Library",
+      "color": "#8b5cf6",
+      "icon": "🧱",
+      "description": "مصاريف ورق حبر اي مشتريات من المكاتب",
+      "created_at": 1757591303,
+      "updated_at": 1757701501
+    },
+    {
+      "id": 7,
+      "name": "معدات",
+      "code": "equipment",
+      "color": "#f59e0b",
+      "icon": "🔧",
+      "description": null,
+      "created_at": 1757591303,
+      "updated_at": 1757591303
+    },
+    {
+      "id": 8,
+      "name": "مواصلات",
+      "code": "transport",
+      "color": "#ec4899",
+      "icon": "🚗",
+      "description": null,
+      "created_at": 1757591303,
+      "updated_at": 1757591303
+    },
+    {
+      "id": 10,
+      "name": "سلة",
+      "code": "salla",
+      "color": "#ef4444",
+      "icon": "🌐",
+      "description": "موقع يقدم خدمة بيع المنتجات",
+      "created_at": 1757608883,
+      "updated_at": 1757608883
+    },
+    {
+      "id": 19,
+      "name": "مصاريف مساجد",
+      "code": "mosque_expenses",
+      "color": "#3b82f6",
+      "icon": "👷",
+      "description": "بخشيش عمال المساجد",
+      "created_at": 1757701451,
+      "updated_at": 1757701451
+    },
+    {
+      "id": 20,
+      "name": "Hostinger 2",
+      "code": "Hostinger",
+      "color": "#3b82f6",
+      "icon": "",
+      "description": "إستضافة المشروع بالكامل",
+      "created_at": 1757701620,
+      "updated_at": 1764133203
+    }
+  ],
+  "clients": [
+    {
+      "id": 1,
+      "name": "عميل تجريبي",
+      "code": "CLT-DEFAULT",
+      "phone": "0500000000",
+      "email": null,
+      "address": null,
+      "contact_person": null,
+      "tax_number": null,
+      "notes": "عميل افتراضي للمشاريع التجريبية والقديمة",
+      "color": "#9ca3af",
+      "icon": "🏢",
+      "is_active": 1,
+      "created_at": 1764458560,
+      "updated_at": 1764458560
+    }
+  ],
+  "projects": [],
+  "project_items": [
+    {
+      "id": 1,
+      "project_id": null,
+      "name": "09",
+      "code": "mt",
+      "description": "mt",
+      "budget": 0,
+      "sort_order": 0,
+      "color": "#3b82f6",
+      "icon": "📦",
+      "unit": null,
+      "is_active": 1,
+      "created_at": 1764260470248,
+      "updated_at": 1764260470248
+    }
+  ],
+  "expenses": [],
+  "expected_expenses": [],
+  "units": [
+    {
+      "id": 1,
+      "name": "قطعة",
+      "code": "PCS",
+      "description": "قطعة",
+      "color": "#3b82f6",
+      "icon": "📦",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 2,
+      "name": "كيس",
+      "code": "BAG",
+      "description": "كيس",
+      "color": "#8b5cf6",
+      "icon": "🎒",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 3,
+      "name": "متر",
+      "code": "M",
+      "description": "متر",
+      "color": "#10b981",
+      "icon": "📏",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 4,
+      "name": "متر مربع",
+      "code": "M2",
+      "description": "متر مربع",
+      "color": "#06b6d4",
+      "icon": "⬛",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 5,
+      "name": "لتر",
+      "code": "L",
+      "description": "لتر",
+      "color": "#0ea5e9",
+      "icon": "🥤",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 6,
+      "name": "كيلو",
+      "code": "KG",
+      "description": "كيلوجرام",
+      "color": "#f59e0b",
+      "icon": "⚖️",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 7,
+      "name": "طن",
+      "code": "TON",
+      "description": "طن",
+      "color": "#ef4444",
+      "icon": "🏋️",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 8,
+      "name": "كرتون",
+      "code": "CTN",
+      "description": "كرتون",
+      "color": "#ec4899",
+      "icon": "📦",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 9,
+      "name": "صندوق",
+      "code": "BOX",
+      "description": "صندوق",
+      "color": "#a855f7",
+      "icon": "🗃️",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    },
+    {
+      "id": 10,
+      "name": "علبة",
+      "code": "PKG",
+      "description": "علبة",
+      "color": "#14b8a6",
+      "icon": "📦",
+      "is_active": 1,
+      "created_at": 1764204301531,
+      "updated_at": 1764204301531
+    }
+  ],
+  "payment_methods": [
+    {
+      "id": 1,
+      "name": "نقداً",
+      "code": "CASH",
+      "description": "الدفع النقدي المباشر",
+      "color": "#10b981",
+      "icon": "💵",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    },
+    {
+      "id": 2,
+      "name": "تحويل بنكي",
+      "code": "BANK",
+      "description": "التحويل البنكي",
+      "color": "#3b82f6",
+      "icon": "🏦",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    },
+    {
+      "id": 3,
+      "name": "شيك",
+      "code": "CHECK",
+      "description": "الدفع بالشيك",
+      "color": "#8b5cf6",
+      "icon": "📝",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    },
+    {
+      "id": 4,
+      "name": "بطاقة ائتمان",
+      "code": "CREDIT",
+      "description": "الدفع ببطاقة الائتمان",
+      "color": "#f59e0b",
+      "icon": "💳",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    },
+    {
+      "id": 5,
+      "name": "محفظة إلكترونية",
+      "code": "WALLET",
+      "description": "المحافظ الإلكترونية",
+      "color": "#06b6d4",
+      "icon": "📱",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    },
+    {
+      "id": 6,
+      "name": "آجل",
+      "code": "DEFERRED",
+      "description": "الدفع الآجل",
+      "color": "#ef4444",
+      "icon": "⏰",
+      "is_active": 1,
+      "created_at": 1764111259074,
+      "updated_at": 1764111259074
+    }
+  ]
+}

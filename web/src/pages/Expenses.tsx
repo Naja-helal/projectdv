@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import ExpenseForm from '@/components/forms/ExpenseForm'
 import EditExpenseForm from '@/components/forms/EditExpenseForm'
 import { Trash2, FolderOpen, Edit } from 'lucide-react'
-import { expenseApi, categoryApi, projectApi } from '@/lib/api'
+import { expensesApi, categoriesApi, projectsApi } from '@/lib/supabaseApi'
 import type { Expense, ExpenseFilters } from '@/types'
 import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -26,27 +26,24 @@ export default function Expenses() {
   // جلب المصروفات
   const { data: expenses = [], isLoading, error } = useQuery({
     queryKey: ['expenses', filters],
-    queryFn: () => expenseApi.getExpenses({
-      ...filters,
-      q: searchTerm || undefined,
-    })
+    queryFn: () => expensesApi.getAll()
   })
 
   // جلب الفئات للفلترة
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   // جلب المشاريع للفلترة
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   // حذف مصروف
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => expenseApi.deleteExpense(id),
+    mutationFn: (id: number) => expensesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
@@ -68,7 +65,7 @@ export default function Expenses() {
   const deleteSelectedMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       for (const id of ids) {
-        await expenseApi.deleteExpense(id)
+        await expensesApi.delete(id)
       }
     },
     onSuccess: () => {

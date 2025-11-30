@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { categoryApi } from '@/lib/api'
+import { categoriesApi } from '@/lib/supabaseApi'
 import EditCategoryForm from '@/components/forms/EditCategoryForm'
 import type { Category } from '@/types'
 
@@ -29,7 +29,7 @@ export default function CategoriesPage() {
   // جلب الفئات
   const { data: categories = [], isLoading, error } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   // نموذج إضافة فئة
@@ -37,7 +37,7 @@ export default function CategoriesPage() {
 
   // إضافة فئة جديدة
   const createMutation = useMutation({
-    mutationFn: (data: CreateCategoryData) => categoryApi.createCategory(data),
+    mutationFn: (data: CreateCategoryData) => categoriesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       reset()
@@ -50,7 +50,7 @@ export default function CategoriesPage() {
 
   // حذف فئة
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => categoryApi.deleteCategory(id),
+    mutationFn: (id: number) => categoriesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
     }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { paymentMethodApi } from '@/lib/api'
+import { paymentMethodsApi } from '@/lib/supabaseApi'
 import EditPaymentMethodForm from '@/components/forms/EditPaymentMethodForm'
 import type { PaymentMethod } from '@/types'
 
@@ -28,8 +28,8 @@ export default function PaymentMethods() {
 
   // جلب طرق الدفع
   const { data: paymentMethods = [], isLoading, error } = useQuery({
-    queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryKey: ['paymentMethods'],
+    queryFn: paymentMethodsApi.getAll
   })
 
   // نموذج إضافة طريقة دفع
@@ -37,7 +37,7 @@ export default function PaymentMethods() {
 
   // إضافة طريقة دفع جديدة
   const createMutation = useMutation({
-    mutationFn: (data: CreatePaymentMethodData) => paymentMethodApi.createPaymentMethod(data),
+    mutationFn: (data: CreatePaymentMethodData) => paymentMethodsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
       reset()
@@ -50,7 +50,7 @@ export default function PaymentMethods() {
 
   // حذف طريقة دفع
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => paymentMethodApi.deletePaymentMethod(id),
+    mutationFn: (id: number) => paymentMethodsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
     }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { unitApi } from '@/lib/api'
+import { unitsApi } from '@/lib/supabaseApi'
 import EditUnitForm from '@/components/forms/EditUnitForm'
 import type { Unit } from '@/types'
 
@@ -29,7 +29,7 @@ export default function Units() {
   // جلب الوحدات
   const { data: units = [], isLoading, error } = useQuery({
     queryKey: ['units'],
-    queryFn: unitApi.getUnits
+    queryFn: unitsApi.getAll
   })
 
   // نموذج إضافة وحدة
@@ -37,7 +37,7 @@ export default function Units() {
 
   // إضافة وحدة جديدة
   const createMutation = useMutation({
-    mutationFn: (data: CreateUnitData) => unitApi.createUnit(data),
+    mutationFn: (data: CreateUnitData) => unitsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] })
       reset()
@@ -50,7 +50,7 @@ export default function Units() {
 
   // حذف وحدة
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => unitApi.deleteUnit(id),
+    mutationFn: (id: number) => unitsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] })
     }
