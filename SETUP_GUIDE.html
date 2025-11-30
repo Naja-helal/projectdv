@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Setup Supabase - خطوات الإعداد</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-right: 5px solid #667eea;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-left: 15px;
+        }
+        .step-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .step-content {
+            margin-right: 55px;
+            color: #555;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+        .important {
+            background: #fff3cd;
+            border-right: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background: #d4edda;
+            border-right: 5px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 10px 5px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .link:hover {
+            transform: translateY(-2px);
+        }
+        .checklist {
+            list-style: none;
+            margin: 15px 0;
+        }
+        .checklist li {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            border-right: 3px solid #28a745;
+        }
+        .checklist li:before {
+            content: "✅ ";
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 دليل إعداد Supabase</h1>
+        <p class="subtitle">اتبع هذه الخطوات بالترتيب لإعداد قاعدة البيانات والاتصال</p>
+
+        <!-- الخطوة 1: إنشاء الجداول -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">1</span>
+                <span>📊 إنشاء الجداول في Supabase</span>
+            </div>
+            <div class="step-content">
+                <p><strong>افتح SQL Editor في Supabase:</strong></p>
+                <a href="https://supabase.com/dashboard/project/ekezjmhpdzydiczspfsm/sql/new" class="link" target="_blank">
+                    🔗 فتح SQL Editor
+                </a>
+                
+                <p style="margin-top: 20px;"><strong>انسخ محتوى ملف <code>supabase-schema.sql</code> ونفذه</strong></p>
+                
+                <div class="important">
+                    <strong>⚠️ هام:</strong> إذا كانت الجداول موجودة بالفعل، تخطى هذه الخطوة
+                </div>
+            </div>
+        </div>
+
+        <!-- الخطوة 2: تعطيل RLS -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">2</span>
+                <span>🔓 تعطيل Row Level Security (RLS)</span>
+            </div>
+            <div class="step-content">
+                <p><strong>في نفس SQL Editor، نفذ:</strong></p>
+                <div class="code-block">-- تعطيل RLS لجميع الجداول
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE clients DISABLE ROW LEVEL SECURITY;
+ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE units DISABLE ROW LEVEL SECURITY;
+ALTER TABLE project_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE expected_expenses DISABLE ROW LEVEL SECURITY;</div>
+                
+                <div class="important">
+                    <strong>📝 ملاحظة:</strong> RLS يمنع القراءة/الكتابة بدون مصادقة. تعطيله ضروري للوصول العام
+                </div>
+                
+                <p style="margin-top: 15px;">أو استخدم الملف الجاهز:</p>
+                <a href="https://supabase.com/dashboard/project/ekezjmhpdzydiczspfsm/sql/new" class="link" target="_blank">
+                    🔗 فتح SQL Editor - ملف supabase-disable-rls.sql
+                </a>
+            </div>
+        </div>
+
+        <!-- الخطوة 3: إدخال البيانات -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">3</span>
+                <span>📥 إدخال البيانات الأساسية</span>
+            </div>
+            <div class="step-content">
+                <p><strong>في SQL Editor، نفذ محتوى ملف <code>supabase-import-data.sql</code></strong></p>
+                
+                <p style="margin-top: 15px;"><strong>أو انسخ هذا الأمر:</strong></p>
+                <div class="code-block">-- سيتم إدخال:
+-- ✅ 8 تصنيفات (categories)
+-- ✅ 1 عميل (clients)
+-- ✅ 10 وحدات (units)
+-- ✅ 6 طرق دفع (payment_methods)
+-- ✅ 1 بند مشروع (project_items)</div>
+                
+                <a href="https://supabase.com/dashboard/project/ekezjmhpdzydiczspfsm/sql/new" class="link" target="_blank">
+                    🔗 فتح SQL Editor - تنفيذ supabase-import-data.sql
+                </a>
+            </div>
+        </div>
+
+        <!-- الخطوة 4: اختبار الاتصال -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">4</span>
+                <span>🧪 اختبار الاتصال</span>
+            </div>
+            <div class="step-content">
+                <p><strong>افتح صفحة الاختبار:</strong></p>
+                <a href="http://localhost:8888/test-supabase-connection.html" class="link" target="_blank">
+                    🧪 اختبار الاتصال المحلي
+                </a>
+                
+                <p style="margin-top: 20px;"><strong>أو تحقق من الجداول مباشرة:</strong></p>
+                <a href="https://supabase.com/dashboard/project/ekezjmhpdzydiczspfsm/editor" class="link" target="_blank">
+                    📊 Table Editor - عرض الجداول
+                </a>
+            </div>
+        </div>
+
+        <!-- الخطوة 5: التحقق من Netlify -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">5</span>
+                <span>🌐 التحقق من Netlify Environment Variables</span>
+            </div>
+            <div class="step-content">
+                <p><strong>تأكد من وجود المتغيرات البيئية في Netlify:</strong></p>
+                
+                <div class="code-block">VITE_SUPABASE_URL=https://ekezjmhpdzydiczspfsm.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXpqbWhwZHp5ZGljenNwZnNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0ODU5MzcsImV4cCI6MjA4MDA2MTkzN30.WhOebC0eJ73ztpnRT0bUbyPdt9yvCkJN3EuyT7SAVPA</div>
+                
+                <a href="https://app.netlify.com/sites/projectdv/configuration/env" class="link" target="_blank">
+                    ⚙️ إعدادات Netlify
+                </a>
+                
+                <div class="important">
+                    <strong>⚠️ هام:</strong> يجب إعادة بناء الموقع بعد تعديل المتغيرات البيئية
+                </div>
+            </div>
+        </div>
+
+        <!-- الخطوة 6: الاختبار النهائي -->
+        <div class="step">
+            <div class="step-title">
+                <span class="step-number">6</span>
+                <span>✅ الاختبار النهائي</span>
+            </div>
+            <div class="step-content">
+                <p><strong>اختبر التطبيق:</strong></p>
+                
+                <a href="http://localhost:3000" class="link" target="_blank">
+                    💻 التطبيق المحلي
+                </a>
+                
+                <a href="https://projectdv.netlify.app" class="link" target="_blank">
+                    🌐 التطبيق على Netlify
+                </a>
+                
+                <p style="margin-top: 20px;"><strong>تحقق من:</strong></p>
+                <ul class="checklist">
+                    <li>تسجيل الدخول يعمل (admin / A@asd123)</li>
+                    <li>صفحة الوحدات تعرض 10 وحدات</li>
+                    <li>صفحة التصنيفات تعرض 8 تصنيفات</li>
+                    <li>صفحة طرق الدفع تعرض 6 طرق</li>
+                    <li>يمكن إضافة/تعديل/حذف البيانات</li>
+                    <li>لا توجد أخطاء في Console</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- قسم المساعدة -->
+        <div class="success">
+            <h3 style="margin-bottom: 15px;">💡 نصائح مهمة:</h3>
+            <ul style="margin-right: 20px;">
+                <li><strong>RLS معطل:</strong> يمكن لأي شخص القراءة/الكتابة (مناسب للتطوير)</li>
+                <li><strong>Anon Key عام:</strong> يستخدم في Frontend بدون مشاكل أمنية</li>
+                <li><strong>لا حاجة لـ Service Role Key:</strong> Anon Key كافي مع RLS معطل</li>
+                <li><strong>التطبيق Serverless بالكامل:</strong> لا توجد استدعاءات لـ Railway</li>
+            </ul>
+        </div>
+
+        <!-- روابط مفيدة -->
+        <div style="margin-top: 40px; text-align: center; padding: 30px; background: #f8f9fa; border-radius: 15px;">
+            <h3 style="margin-bottom: 20px; color: #667eea;">🔗 روابط مفيدة</h3>
+            <a href="https://supabase.com/dashboard/project/ekezjmhpdzydiczspfsm" class="link" target="_blank">
+                📊 Supabase Dashboard
+            </a>
+            <a href="https://app.netlify.com/sites/projectdv" class="link" target="_blank">
+                🌐 Netlify Dashboard
+            </a>
+            <a href="https://github.com/Naja-helal/projectdv" class="link" target="_blank">
+                💾 GitHub Repository
+            </a>
+        </div>
+    </div>
+</body>
+</html>
