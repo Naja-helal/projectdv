@@ -288,372 +288,40 @@ try {
   }
   
   console.log('✅ Auto-Migration مكتمل!\n');
-  
-  // ===== الكود القديم للتوافق مع الإصدارات السابقة =====
-  // (يمكن حذفه لاحقاً بعد التأكد من عمل النظام)
-  
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='units'").all() as Array<{ name: string }>;
-  const hasUnitsTable = tables.length > 0;
-  
-  if (!hasUnitsTable) {
-    console.log('📦 إنشاء جدول الوحدات...');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS units (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        code TEXT,
-        description TEXT,
-        color TEXT DEFAULT '#3b82f6',
-        icon TEXT DEFAULT '📏',
-        is_active INTEGER DEFAULT 1,
-        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-      )
-    `);
-    console.log('✅ تم إنشاء جدول الوحدات');
-    
-    // إضافة الوحدات الافتراضية
-    const units = [
-      { name: 'قطعة', code: 'PCS', description: 'قطعة واحدة', color: '#3b82f6', icon: '📦' },
-      { name: 'كيس', code: 'BAG', description: 'كيس واحد', color: '#8b5cf6', icon: '🎒' },
-      { name: 'متر', code: 'M', description: 'متر واحد', color: '#10b981', icon: '📏' },
-      { name: 'متر مربع', code: 'M2', description: 'متر مربع واحد', color: '#06b6d4', icon: '⬛' },
-      { name: 'لتر', code: 'L', description: 'لتر واحد', color: '#0ea5e9', icon: '🥤' },
-      { name: 'كيلو', code: 'KG', description: 'كيلوجرام واحد', color: '#f59e0b', icon: '⚖️' },
-      { name: 'طن', code: 'TON', description: 'طن واحد', color: '#ef4444', icon: '🏋️' },
-      { name: 'كرتون', code: 'CTN', description: 'كرتون واحد', color: '#ec4899', icon: '📦' },
-      { name: 'صندوق', code: 'BOX', description: 'صندوق واحد', color: '#a855f7', icon: '🗃️' },
-      { name: 'علبة', code: 'PKG', description: 'علبة واحدة', color: '#14b8a6', icon: '📦' }
-    ];
-    
-    const stmt = db.prepare(`
-      INSERT INTO units (name, code, description, color, icon)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    
-    for (const unit of units) {
-      stmt.run(unit.name, unit.code, unit.description, unit.color, unit.icon);
-    }
-    
-    console.log('✅ تم إضافة 10 وحدات افتراضية');
-  }
-  
-  // ===== فحص وإضافة أعمدة جدول المصروفات =====
-  const columns = db.pragma('table_info(expenses)') as Array<{ name: string }>;
-  const hasDescription = columns.some((col) => col.name === 'description');
-  const hasDetails = columns.some((col) => col.name === 'details');
-  const hasUnitId = columns.some((col) => col.name === 'unit_id');
-  const hasPaymentMethodId = columns.some((col) => col.name === 'payment_method_id');
-  
-  if (!hasDescription) {
-    console.log('➕ إضافة عمود description...');
-    db.exec('ALTER TABLE expenses ADD COLUMN description TEXT');
-    console.log('✅ تم إضافة عمود description');
-  }
-  
-  if (!hasDetails) {
-    console.log('➕ إضافة عمود details...');
-    db.exec('ALTER TABLE expenses ADD COLUMN details TEXT');
-    console.log('✅ تم إضافة عمود details');
-  }
-  
-  if (!hasUnitId) {
-    console.log('➕ إضافة عمود unit_id...');
-    db.exec('ALTER TABLE expenses ADD COLUMN unit_id INTEGER REFERENCES units(id)');
-    console.log('✅ تم إضافة عمود unit_id');
-  }
-  
-  if (!hasPaymentMethodId) {
-    console.log('➕ إضافة عمود payment_method_id...');
-    db.exec('ALTER TABLE expenses ADD COLUMN payment_method_id INTEGER REFERENCES payment_methods(id)');
-    console.log('✅ تم إضافة عمود payment_method_id');
-  }
-  
-  if (!hasDescription || !hasDetails || !hasUnitId || !hasPaymentMethodId || !hasUnitsTable) {
-    console.log('🎉 تم تحديث schema قاعدة البيانات بنجاح!');
-  }
 
-  // ===== فحص وإضافة أعمدة جدول طرق الدفع =====
-  const paymentMethodsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='payment_methods'").all() as Array<{ name: string }>;
-  const hasPaymentMethodsTable = paymentMethodsTables.length > 0;
-  
-  if (hasPaymentMethodsTable) {
-    const pmColumns = db.pragma('table_info(payment_methods)') as Array<{ name: string }>;
-    const hasCode = pmColumns.some((col) => col.name === 'code');
-    const hasDescription = pmColumns.some((col) => col.name === 'description');
-    const hasColor = pmColumns.some((col) => col.name === 'color');
-    const hasIcon = pmColumns.some((col) => col.name === 'icon');
-    const hasIsActive = pmColumns.some((col) => col.name === 'is_active');
-    
-    if (!hasCode) {
-      console.log('➕ إضافة عمود code لجدول payment_methods...');
-      db.exec('ALTER TABLE payment_methods ADD COLUMN code TEXT');
-      console.log('✅ تم إضافة عمود code');
-    }
-    
-    if (!hasDescription) {
-      console.log('➕ إضافة عمود description لجدول payment_methods...');
-      db.exec('ALTER TABLE payment_methods ADD COLUMN description TEXT');
-      console.log('✅ تم إضافة عمود description');
-    }
-    
-    if (!hasColor) {
-      console.log('➕ إضافة عمود color لجدول payment_methods...');
-      db.exec('ALTER TABLE payment_methods ADD COLUMN color TEXT DEFAULT \'#10b981\'');
-      console.log('✅ تم إضافة عمود color');
-    }
-    
-    if (!hasIcon) {
-      console.log('➕ إضافة عمود icon لجدول payment_methods...');
-      db.exec('ALTER TABLE payment_methods ADD COLUMN icon TEXT DEFAULT \'💳\'');
-      console.log('✅ تم إضافة عمود icon');
-    }
-    
-    if (!hasIsActive) {
-      console.log('➕ إضافة عمود is_active لجدول payment_methods...');
-      db.exec('ALTER TABLE payment_methods ADD COLUMN is_active INTEGER DEFAULT 1');
-      console.log('✅ تم إضافة عمود is_active');
-    }
-    
-    if (!hasCode || !hasDescription || !hasColor || !hasIcon || !hasIsActive) {
-      console.log('🎉 تم تحديث جدول payment_methods بنجاح!');
-    }
-  }
-
-  // ===== حذف أنواع المشاريع: حذف العمود أولاً ثم الجدول =====
-  const projectColumns = db.pragma('table_info(projects)') as Array<{ name: string }>;
-  const hasProjectTypeId = projectColumns.some((col) => col.name === 'project_type_id');
-  
-  if (hasProjectTypeId) {
-    console.log('🗑️ حذف عمود project_type_id من جدول المشاريع...');
-    
-    // تعطيل foreign keys مؤقتاً
-    db.exec('PRAGMA foreign_keys = OFF');
-    
-    // إعادة إنشاء الجدول بدون العمود
-    db.exec(`
-      BEGIN TRANSACTION;
-      
-      CREATE TABLE projects_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        code TEXT,
-        project_item_id INTEGER,
-        client_id INTEGER DEFAULT 1,
-        description TEXT,
-        budget REAL DEFAULT 0,
-        expected_spending REAL DEFAULT 0,
-        start_date INTEGER,
-        end_date INTEGER,
-        status TEXT DEFAULT 'active',
-        color TEXT DEFAULT '#3b82f6',
-        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-      );
-      
-      INSERT INTO projects_new (id, name, code, project_item_id, client_id, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at)
-      SELECT id, name, code, project_item_id, client_id, description, budget, expected_spending, start_date, end_date, status, color, created_at, updated_at
-      FROM projects;
-      
-      DROP TABLE projects;
-      ALTER TABLE projects_new RENAME TO projects;
-      
-      COMMIT;
-    `);
-    
-    // إعادة تفعيل foreign keys
-    db.exec('PRAGMA foreign_keys = ON');
-    
-    console.log('✅ تم حذف عمود project_type_id من جدول المشاريع');
-  }
-  
-  // الآن يمكن حذف جدول project_types بأمان
-  const projectTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_types'").all() as Array<{ name: string }>;
-  const hasProjectTypesTable = projectTables.length > 0;
-  
-  if (hasProjectTypesTable) {
-    console.log('🗑️ حذف جدول project_types...');
-    db.exec('DROP TABLE IF EXISTS project_types');
-    console.log('✅ تم حذف جدول project_types');
-  }
-  
-  if (hasProjectTypeId || hasProjectTypesTable) {
-    console.log('🎉 تم حذف أنواع المشاريع بنجاح!');
-  }
-  
-  // إضافة عمود project_item_id إذا لم يكن موجود
-  const hasProjectItemId = projectColumns.some((col) => col.name === 'project_item_id');
-  if (!hasProjectItemId) {
-    console.log('➕ إضافة عمود project_item_id...');
-    db.exec('ALTER TABLE projects ADD COLUMN project_item_id INTEGER REFERENCES project_items(id)');
-    console.log('✅ تم إضافة عمود project_item_id');
-  }
-
-  // ===== فحص وإنشاء جدول الإنفاق المتوقع =====
-  const expectedExpensesTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='expected_expenses'").all() as Array<{ name: string }>;
-  const hasExpectedExpensesTable = expectedExpensesTables.length > 0;
-  
-  if (!hasExpectedExpensesTable) {
-    console.log('📦 إنشاء جدول الإنفاق المتوقع...');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS expected_expenses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category_id INTEGER NOT NULL,
-        project_id INTEGER,
-        project_item_id INTEGER,
-        quantity REAL DEFAULT 1,
-        unit_price REAL,
-        unit_id INTEGER,
-        amount REAL NOT NULL,
-        tax_rate REAL DEFAULT 0,
-        tax_amount REAL DEFAULT 0,
-        total_amount REAL,
-        payment_method_id INTEGER,
-        date INTEGER NOT NULL,
-        description TEXT,
-        details TEXT,
-        notes TEXT,
-        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        FOREIGN KEY (category_id) REFERENCES categories(id),
-        FOREIGN KEY (project_id) REFERENCES projects(id),
-        FOREIGN KEY (project_item_id) REFERENCES project_items(id),
-        FOREIGN KEY (unit_id) REFERENCES units(id),
-        FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
-      )
-    `);
-    console.log('✅ تم إنشاء جدول الإنفاق المتوقع بنجاح');
-  }
-
-  // ===== فحص وإنشاء جدول العملاء =====
-  const clientsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='clients'").all() as Array<{ name: string }>;
-  const hasClientsTable = clientsTables.length > 0;
-  
-  if (!hasClientsTable) {
-    console.log('📦 إنشاء جدول العملاء...');
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS clients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        code TEXT UNIQUE,
-        phone TEXT,
-        email TEXT,
-        address TEXT,
-        contact_person TEXT,
-        tax_number TEXT,
-        notes TEXT,
-        color TEXT DEFAULT '#3b82f6',
-        icon TEXT DEFAULT '👤',
-        is_active INTEGER DEFAULT 1,
-        created_at INTEGER DEFAULT (cast(strftime('%s','now') as int)),
-        updated_at INTEGER DEFAULT (cast(strftime('%s','now') as int))
-      )
-    `);
-    console.log('✅ تم إنشاء جدول العملاء بنجاح');
-    
-    // إضافة عميل تجريبي افتراضي
-    console.log('📝 إضافة عميل تجريبي افتراضي...');
-    db.exec(`
-      INSERT INTO clients (id, name, code, phone, color, icon, notes) 
-      VALUES (1, 'عميل تجريبي', 'CLT-DEFAULT', '0500000000', '#9ca3af', '🏢', 'عميل افتراضي للمشاريع التجريبية والقديمة')
-    `);
-    console.log('✅ تم إضافة العميل التجريبي');
-  }
-  
-  // ===== إضافة client_id لجدول المشاريع =====
-  const projectsColumns2 = db.pragma('table_info(projects)') as Array<{ name: string }>;
-  const hasClientId = projectsColumns2.some((col) => col.name === 'client_id');
-  
-  if (!hasClientId) {
-    console.log('➕ إضافة عمود client_id لجدول المشاريع...');
-    // SQLite لا يدعم إضافة عمود REFERENCES مع DEFAULT
-    db.exec('ALTER TABLE projects ADD COLUMN client_id INTEGER DEFAULT 1');
-    console.log('✅ تم إضافة عمود client_id');
-    
-    // ربط جميع المشاريع الحالية بالعميل التجريبي
-    console.log('🔗 ربط المشاريع الحالية بالعميل التجريبي...');
-    db.exec('UPDATE projects SET client_id = 1 WHERE client_id IS NULL');
-    console.log('✅ تم ربط المشاريع الحالية بالعميل التجريبي');
-  }
-
-  // ===== فحص وإصلاح جدول project_items =====
-  const projectItemsTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='project_items'").all() as Array<{ name: string }>;
-  const hasProjectItemsTable = projectItemsTables.length > 0;
-  
-  if (hasProjectItemsTable) {
-    const projectItemsColumns = db.pragma('table_info(project_items)') as Array<{ name: string }>;
-    const hasProjectIdInItems = projectItemsColumns.some((col) => col.name === 'project_id');
-    const hasIsActive = projectItemsColumns.some((col) => col.name === 'is_active');
-    
-    // إذا كان الجدول موجود لكن بدون الأعمدة المطلوبة، نعيد إنشائه
-    if (!hasProjectIdInItems || !hasIsActive) {
-      console.log('⚠️ جدول project_items يحتاج إعادة إنشاء لإضافة الأعمدة المطلوبة...');
-      
-      // تعطيل foreign keys مؤقتاً
-      db.exec('PRAGMA foreign_keys = OFF');
-      
-      // حذف الجدول القديم وإعادة إنشائه بجميع الأعمدة
-      db.exec(`
-        DROP TABLE IF EXISTS project_items;
-        
-        CREATE TABLE project_items (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          project_id INTEGER,
-          name TEXT NOT NULL,
-          code TEXT,
-          description TEXT,
-          budget REAL DEFAULT 0,
-          sort_order INTEGER DEFAULT 0,
-          color TEXT DEFAULT '#3b82f6',
-          icon TEXT DEFAULT '📋',
-          unit TEXT,
-          is_active INTEGER DEFAULT 1,
-          created_at INTEGER DEFAULT (strftime('%s', 'now')),
-          updated_at INTEGER DEFAULT (strftime('%s', 'now')),
-          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-        );
-      `);
-      
-      // إعادة تفعيل foreign keys
-      db.exec('PRAGMA foreign_keys = ON');
-      
-      console.log('✅ تم إعادة إنشاء جدول project_items بشكل صحيح');
-    }
-  }
 } catch (error) {
   console.error('⚠️ خطأ في تحديث schema:', error);
 }
 
-// بيانات الأدمن الثابتة
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "A@asd123";
+// إعداد المتوسطات (Middleware)
+app.use(cors());
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-// middleware للتحقق من التوثيق
+// Serve static files من مجلد Frontend (production)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../../web/dist')));
+}
+
+// بيانات المستخدم الافتراضية
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'A@asd123';
+
+// دالة Middleware للتوثيق
 const authenticateAdmin = (req: any, res: any, next: any) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({ error: "مطلوب تسجيل الدخول" });
-  }
-
   try {
-    // فك تشفير الرمز المميز البسيط
-    const decoded = Buffer.from(token, 'base64').toString();
-    const [username, timestamp] = decoded.split(':');
-    
-    if (username !== ADMIN_USERNAME) {
-      return res.status(401).json({ error: "رمز التوثيق غير صالح" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: "رمز التوثيق مطلوب" });
     }
 
-    // التحقق من صلاحية الرمز (24 ساعة)
-    const tokenTime = parseInt(timestamp);
-    const currentTime = Date.now();
-    const tokenAge = currentTime - tokenTime;
-    const maxAge = 24 * 60 * 60 * 1000; // 24 ساعة بالميللي ثانية
+    const token = authHeader.substring(7);
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const [username] = decoded.split(':');
 
-    if (tokenAge > maxAge) {
-      return res.status(401).json({ error: "انتهت صلاحية جلسة تسجيل الدخول، يرجى تسجيل الدخول مرة أخرى" });
+    if (username !== ADMIN_USERNAME) {
+      return res.status(401).json({ error: "رمز التوثيق غير صالح" });
     }
 
     next();
@@ -661,7 +329,6 @@ const authenticateAdmin = (req: any, res: any, next: any) => {
     res.status(401).json({ error: "رمز التوثيق غير صالح" });
   }
 };
-
 // إعداد المتوسطات (Middleware)
 app.use(cors());
 app.use(compression());
