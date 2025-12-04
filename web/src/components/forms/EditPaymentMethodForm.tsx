@@ -6,6 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +48,7 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
     mutationFn: (data: CreatePaymentMethodData) => 
       paymentMethodsApi.update(paymentMethod!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods'] })
       onClose()
     },
     onError: (error) => {
@@ -62,13 +63,12 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
   }
 
   const predefinedColors = [
-    '#ef4444', '#f97316', '#06b6d4', '#10b981', '#6b7280',
-    '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6', '#84cc16'
+    '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', 
+    '#ef4444', '#ec4899', '#84cc16', '#f97316', '#6b7280'
   ]
 
   const predefinedIcons = [
-    '💳', '💵', '💰', '🏦', '🪙', '💸', '📱', '🔐', '💼', '🏧',
-    '💴', '💶', '💷', '💹', '🎫', '📲', '🔒', '✔️', '✅', '📝'
+    '💵', '🏦', '📝', '💳', '📱', '⏰', '💰', '🏪', '💸', '🔒'
   ]
 
   if (!paymentMethod) return null
@@ -82,25 +82,27 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">اسم طريقة الدفع *</Label>
-            <Input
-              id="edit-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="مثال: نقدي"
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">اسم طريقة الدفع *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="مثال: نقداً"
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-code">الكود</Label>
-            <Input
-              id="edit-code"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="مثال: CASH"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">الرمز (اختياري)</Label>
+              <Input
+                id="edit-code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="مثال: CASH"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -116,56 +118,65 @@ export default function EditPaymentMethodForm({ paymentMethod, open, onClose }: 
 
           <div className="space-y-2">
             <Label>اللون</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 flex-wrap">
               {predefinedColors.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  onClick={() => setFormData({ ...formData, color })}
-                  className={`w-10 h-10 rounded-full border-2 transition-all ${
-                    formData.color === color ? 'border-gray-900 scale-110' : 'border-gray-300'
-                  }`}
+                  className="w-10 h-10 rounded-xl border-2 border-muted hover:scale-110 transition-transform"
                   style={{ backgroundColor: color }}
+                  onClick={() => setFormData({ ...formData, color })}
                 />
               ))}
             </div>
+            <Input
+              id="edit-color-input"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              type="color"
+              className="w-24 h-12"
+            />
           </div>
 
           <div className="space-y-2">
             <Label>الأيقونة</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 flex-wrap">
               {predefinedIcons.map((icon) => (
                 <button
                   key={icon}
                   type="button"
+                  className="w-10 h-10 border-2 rounded-xl flex items-center justify-center hover:bg-muted text-xl hover:scale-110 transition-transform"
                   onClick={() => setFormData({ ...formData, icon })}
-                  className={`w-12 h-12 text-2xl rounded-lg border-2 transition-all ${
-                    formData.icon === icon ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-primary/50'
-                  }`}
                 >
                   {icon}
                 </button>
               ))}
             </div>
+            <Input
+              id="edit-icon-input"
+              value={formData.icon}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              placeholder="💳"
+              maxLength={2}
+            />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button 
-              type="submit" 
-              disabled={updateMutation.isPending}
-              className="flex-1"
-            >
-              {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-            </Button>
-            <Button 
-              type="button" 
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1"
             >
               إلغاء
             </Button>
-          </div>
+            <Button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="bg-gradient-to-r from-green-600 to-green-700"
+            >
+              {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

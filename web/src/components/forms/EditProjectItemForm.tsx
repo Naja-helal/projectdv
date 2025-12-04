@@ -40,7 +40,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
         description: projectItem.description || '',
         color: projectItem.color || '#10b981',
         icon: projectItem.icon || '',
-        unit: projectItem.unit || '',
+        unit: typeof projectItem.unit === 'object' ? (projectItem.unit?.name || '') : (projectItem.unit || ''),
       })
     }
   }, [projectItem])
@@ -49,7 +49,7 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
     mutationFn: (data: CreateProjectItemData) => 
       projectItemsApi.update(projectItem!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-items'] })
+      queryClient.invalidateQueries({ queryKey: ['projectItems'] })
       onClose()
     },
     onError: (error: Error) => {
@@ -89,25 +89,27 @@ export default function EditProjectItemForm({ projectItem, open, onClose }: Edit
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">اسم العنصر *</Label>
-            <Input
-              id="edit-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="مثال: أعمال الخرسانة"
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">اسم العنصر *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="مثال: أعمال الخرسانة"
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-code">كود العنصر</Label>
-            <Input
-              id="edit-code"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="مثال: CONC"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">الرمز (اختياري)</Label>
+              <Input
+                id="edit-code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="مثال: CON"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

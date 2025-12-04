@@ -108,20 +108,20 @@ export default function ExpenseForm({ open, onClose }: ExpenseFormProps) {
     console.log("🔵 ExpenseForm - بيانات الفورم:", data);
     
     const expenseData: CreateExpenseData = {
-      categoryId: parseInt(data.categoryId),
-      projectId: data.projectId ? parseInt(data.projectId) : undefined,
-      projectItemId: data.projectItemId ? parseInt(data.projectItemId) : undefined,
+      category_id: parseInt(data.categoryId),
+      project_id: data.projectId ? parseInt(data.projectId) : undefined,
+      project_item_id: data.projectItemId ? parseInt(data.projectItemId) : undefined,
       quantity: data.useQuantity ? parseFloat(data.quantity) : undefined,
       unit_price: data.useQuantity ? parseFloat(data.unit_price) : undefined,
       unit_id: data.useQuantity && data.unit_id ? parseInt(data.unit_id) : undefined,
       amount: !data.useQuantity ? parseFloat(data.amount) : parseFloat(data.quantity) * parseFloat(data.unit_price),
-      taxRate: parseFloat(data.taxRate),
-      date: new Date(data.date).getTime(),
-      paymentMethodId: data.paymentMethod ? parseInt(data.paymentMethod) : undefined,
-      description: data.description || undefined,
+      tax_rate: parseFloat(data.taxRate),
+      expense_date: data.date,
+      payment_method_id: data.paymentMethod ? parseInt(data.paymentMethod) : undefined,
+      description: data.description || 'مصروف', // قيمة افتراضية إذا كان فارغاً
       details: data.details || undefined,
       notes: data.notes || undefined,
-    }
+    } as any;
 
     console.log("📤 البيانات المرسلة للسيرفر:", expenseData);
     console.log("💳 paymentMethodId:", expenseData.paymentMethodId);

@@ -40,7 +40,7 @@ export default function ProjectItems() {
   const createMutation = useMutation({
     mutationFn: (data: CreateProjectItemData) => projectItemsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-items'] })
+      queryClient.invalidateQueries({ queryKey: ['projectItems'] })
       reset()
       setShowForm(false)
     },
@@ -53,7 +53,7 @@ export default function ProjectItems() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => projectItemsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-items'] })
+      queryClient.invalidateQueries({ queryKey: ['projectItems'] })
     }
   })
 
@@ -202,7 +202,7 @@ export default function ProjectItems() {
               {item.unit && (
                 <div className="flex items-center gap-2 mb-3">
                   <Badge variant="secondary" className="text-xs">
-                    📏 الوحدة: {item.unit}
+                    📏 الوحدة: {typeof item.unit === 'object' ? (item.unit?.name || item.unit?.symbol || '-') : item.unit}
                   </Badge>
                 </div>
               )}

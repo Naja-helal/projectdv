@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { expectedExpenseApi, categoryApi, projectApi, paymentMethodApi, unitApi } from '@/lib/api'
+import { categoriesApi, projectsApi, paymentMethodsApi, unitsApi, expectedExpensesApi } from '@/lib/supabaseApi'
 import type { CreateExpenseData } from '@/types'
 
 interface ExpectedExpenseFormProps {
@@ -70,29 +70,29 @@ export default function ExpectedExpenseForm({ open, onClose }: ExpectedExpenseFo
   // جلب البيانات المرجعية
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   // جلب جميع طرق الدفع المستقلة
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryFn: paymentMethodsApi.getAll
   })
 
   // جلب جميع الوحدات
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
-    queryFn: unitApi.getUnits
+    queryFn: unitsApi.getAll
   })
 
   // mutation لإضافة الإنفاق المتوقع
   const createMutation = useMutation({
-    mutationFn: (data: CreateExpenseData) => expectedExpenseApi.createExpectedExpense(data),
+    mutationFn: expectedExpensesApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expected-expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })

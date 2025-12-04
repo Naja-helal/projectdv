@@ -19,6 +19,7 @@ const mainNavigation = [
 ]
 
 const settingsNavigation = [
+  { name: 'النسخ الاحتياطية', href: '/backups', icon: '🔒' },
   { name: 'الفئات', href: '/categories', icon: '🏷️' },
   { name: 'تصنيف المشاريع', href: '/project-items', icon: '📦' },
   { name: 'طرق الدفع', href: '/payment-methods', icon: '💳' },

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { expectedExpenseApi, categoryApi, projectApi, paymentMethodApi, unitApi } from '@/lib/api'
+import { categoriesApi, projectsApi, paymentMethodsApi, unitsApi, expectedExpensesApi } from '@/lib/supabaseApi'
 import type { CreateExpenseData, Expense } from '@/types'
 
 interface EditExpectedExpenseFormProps {
@@ -71,56 +71,76 @@ export default function EditExpectedExpenseForm({ expense, open, onClose }: Edit
   // جلب البيانات المرجعية
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories
+    queryFn: categoriesApi.getAll
   })
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects
+    queryFn: projectsApi.getAll
   })
 
   // جلب جميع طرق الدفع المستقلة
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods
+    queryFn: paymentMethodsApi.getAll
   })
 
   // جلب جميع الوحدات
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
-    queryFn: unitApi.getUnits
+    queryFn: unitsApi.getAll
   })
 
   // تحميل بيانات الإنفاق المتوقع عند فتح الفورم
   useEffect(() => {
     if (expense && open) {
+      console.log('🔄 [EditExpectedExpenseForm] Loading expense data:', expense);
+      
       setValue('categoryId', String(expense.category_id))
       setValue('projectId', expense.project_id ? String(expense.project_id) : '')
       setValue('projectItemId', expense.project_item_id ? String(expense.project_item_id) : '')
       setValue('quantity', expense.quantity ? String(expense.quantity) : '1')
       setValue('unit_price', expense.unit_price ? String(expense.unit_price) : '')
       setValue('unit_id', expense.unit_id ? String(expense.unit_id) : '')
-      setValue('amount', String(expense.amount))
+      
+      // استخدام estimated_amount من جدول expected_expenses
+      const amountValue = (expense as any).estimated_amount || expense.amount || 0;
+      setValue('amount', String(amountValue))
+      
       setValue('taxRate', String(expense.tax_rate || 0))
       setValue('useQuantity', !!(expense.quantity && expense.unit_price))
       
-      // تحويل التاريخ من timestamp إلى تنسيق date input
-      const dateValue = typeof expense.date === 'number' 
-        ? new Date(expense.date).toISOString().split('T')[0]
-        : expense.date
+      // تحويل التاريخ - استخدام expected_date من جدول expected_expenses
+      let dateValue = new Date().toISOString().split('T')[0];
+      if ((expense as any).expected_date) {
+        dateValue = (expense as any).expected_date;
+      } else if (expense.expense_date) {
+        dateValue = expense.expense_date;
+      } else if (typeof expense.date === 'number') {
+        dateValue = new Date(expense.date).toISOString().split('T')[0];
+      } else if (expense.date) {
+        dateValue = expense.date;
+      }
       setValue('date', dateValue)
       
       setValue('paymentMethod', expense.payment_method_id ? String(expense.payment_method_id) : '')
       setValue('description', expense.description || '')
-      setValue('details', expense.details || '')
+      setValue('details', expense.details || expense.description || '')
       setValue('notes', expense.notes || '')
+      
+      console.log('✅ [EditExpectedExpenseForm] Form values set:', {
+        amount: amountValue,
+        date: dateValue,
+        categoryId: expense.category_id,
+        projectId: expense.project_id
+      });
     }
   }, [expense, open, setValue])
 
   // mutation لتحديث الإنفاق المتوقع
   const updateMutation = useMutation({
     mutationFn: (data: CreateExpenseData & { id: number }) => 
-      expectedExpenseApi.updateExpectedExpense(data.id, data),
+      expectedExpensesApi.update(data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expected-expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })

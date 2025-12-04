@@ -39,7 +39,7 @@ export default function PaymentMethods() {
   const createMutation = useMutation({
     mutationFn: (data: CreatePaymentMethodData) => paymentMethodsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods'] })
       reset()
       setShowForm(false)
     },
@@ -52,7 +52,7 @@ export default function PaymentMethods() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => paymentMethodsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods'] })
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods'] })
     }
   })
 

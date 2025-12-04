@@ -6,6 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -83,85 +84,85 @@ export default function EditUnitForm({ unit, open, onOpenChange, onSuccess }: Ed
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>تعديل الوحدة</DialogTitle>
           <DialogDescription>تحديث معلومات الوحدة</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">اسم الوحدة *</Label>
-            <Input
-              id="edit-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="مثال: متر، كيلو، قطعة"
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">اسم الوحدة *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="مثال: متر، كيلو، قطعة"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">الرمز (اختياري)</Label>
+              <Input
+                id="edit-code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="مثال: M، KG، PCS"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-code">الكود</Label>
-            <Input
-              id="edit-code"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="مثال: M، KG، PCS"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-description">الوصف</Label>
+            <Label htmlFor="edit-description">الوصف (اختياري)</Label>
             <Textarea
               id="edit-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="وصف الوحدة..."
+              placeholder="وصف مختصر للوحدة..."
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
             <Label>اللون</Label>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex gap-2 flex-wrap">
               {predefinedColors.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  onClick={() => setFormData({ ...formData, color })}
-                  className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                    formData.color === color ? 'border-gray-900 scale-110' : 'border-gray-300'
-                  }`}
+                  className="w-10 h-10 rounded-xl border-2 border-muted hover:scale-110 transition-transform"
                   style={{ backgroundColor: color }}
+                  onClick={() => setFormData({ ...formData, color })}
                 />
               ))}
             </div>
             <Input
-              type="color"
+              id="edit-color-input"
               value={formData.color}
               onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-              className="w-20 h-10"
+              type="color"
+              className="w-24 h-12"
             />
           </div>
 
           <div className="space-y-2">
             <Label>الأيقونة</Label>
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex gap-2 flex-wrap">
               {predefinedIcons.map((icon) => (
                 <button
                   key={icon}
                   type="button"
+                  className="w-10 h-10 border-2 rounded-xl flex items-center justify-center hover:bg-muted text-xl hover:scale-110 transition-transform"
                   onClick={() => setFormData({ ...formData, icon })}
-                  className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center text-2xl ${
-                    formData.icon === icon ? 'border-gray-900 scale-110' : 'border-gray-300'
-                  }`}
                 >
                   {icon}
                 </button>
               ))}
             </div>
             <Input
+              id="edit-icon-input"
               value={formData.icon}
               onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
               placeholder="📏"
@@ -169,14 +170,22 @@ export default function EditUnitForm({ unit, open, onOpenChange, onSuccess }: Ed
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               إلغاء
             </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+            <Button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="bg-gradient-to-r from-blue-600 to-blue-700"
+            >
+              {updateMutation.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

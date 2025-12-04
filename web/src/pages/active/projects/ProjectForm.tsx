@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { projectApi, projectItemApi, clientApi } from '@/lib/api';
+import { projectsApi, projectItemsApi, clientsApi } from '@/lib/supabaseApi';
 import { Project, CreateProjectData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,23 +33,23 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   // جلب تصنيفات المشاريع
   const { data: projectItems = [] } = useQuery({
     queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems,
+    queryFn: projectItemsApi.getAll,
   });
 
   // جلب العملاء
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: clientApi.getClients,
+    queryFn: clientsApi.getAll,
   });
 
   // إنشاء أو تحديث مشروع
   const mutation = useMutation({
     mutationFn: async (data: CreateProjectData) => {
       if (project) {
-        await projectApi.updateProject(project.id, data);
+        await projectsApi.update(project.id, data);
         return { id: project.id, success: true };
       }
-      return projectApi.createProject(data);
+      return projectsApi.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -127,11 +127,16 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             onChange={(e) => setFormData({ ...formData, client_id: Number(e.target.value) })}
             className="w-full p-4 border-2 rounded-xl bg-white text-base min-h-[48px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           >
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.icon ? `${client.icon} ` : ''}{client.name}
-              </option>
-            ))}
+            {clients.map((client: any) => {
+              const iconStr = typeof client.icon === 'object' && client.icon !== null 
+                ? (client.icon.symbol || client.icon.name || '') 
+                : (client.icon || '');
+              return (
+                <option key={client.id} value={client.id}>
+                  {iconStr ? `${iconStr} ` : ''}{client.name}
+                </option>
+              );
+            })}
           </select>
         </div>
 
@@ -231,13 +236,15 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               type="date"
               value={
                 formData.start_date
-                  ? new Date(formData.start_date).toISOString().split('T')[0]
+                  ? typeof formData.start_date === 'number' 
+                    ? new Date(formData.start_date).toISOString().split('T')[0]
+                    : formData.start_date.split('T')[0]
                   : ''
               }
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  start_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
+                  start_date: e.target.value || undefined,
                 })
               }
               className="min-h-[48px] text-base border-2 rounded-xl"
@@ -251,12 +258,16 @@ export default function ProjectForm({ project, onSuccess }: ProjectFormProps) {
               id="end_date"
               type="date"
               value={
-                formData.end_date ? new Date(formData.end_date).toISOString().split('T')[0] : ''
+                formData.end_date 
+                  ? typeof formData.end_date === 'number'
+                    ? new Date(formData.end_date).toISOString().split('T')[0]
+                    : formData.end_date.split('T')[0]
+                  : ''
               }
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  end_date: e.target.value ? new Date(e.target.value).getTime() : undefined,
+                  end_date: e.target.value || undefined,
                 })
               }
               className="min-h-[48px] text-base border-2 rounded-xl"

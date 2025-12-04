@@ -1,13 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useState, useMemo } from 'react';
-import { projectsApi, expectedExpensesApi } from '@/lib/supabaseApi';
-import { Button } from '@/components/ui/button';
+import { expectedExpensesApi } from '@/lib/supabaseApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   TrendingUp,
   DollarSign,
   Calendar,
@@ -17,32 +14,32 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Link2,
-  Copy,
   Lock,
-  Unlock,
 } from 'lucide-react';
 
 type SortField = 'date' | 'description' | 'category' | 'amount' | 'quantity';
 type SortDirection = 'asc' | 'desc';
 
-export default function ProjectDetailsPage() {
+export default function ProjectSharedPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [copiedLink, setCopiedLink] = useState(false);
 
-  // جلب تفاصيل المشروع
-  const { data: project, isLoading, isError, refetch } = useQuery({
-    queryKey: ['project', id],
+  // جلب المشروع المشارك (للعرض العام فقط)
+  const { data: project, isLoading, isError } = useQuery({
+    queryKey: ['shared-project', id],
     queryFn: async () => {
-      const projects = await projectsApi.getAll();
-      return projects.find(p => p.id === Number(id));
+      // جلب المشروع مباشرة (بدون التحقق من is_shared هنا)
+      const { data, error } = await (await import('@/lib/supabase')).supabase
+        .from('projects')
+        .select('*, client:clients(*)')
+        .eq('id', Number(id))
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
     },
-    enabled: !!id,
-    staleTime: 0, // تحديث فوري
+    retry: false,
   });
 
   // جلب المصاريف الفعلية المرتبطة بالمشروع
@@ -71,35 +68,6 @@ export default function ProjectDetailsPage() {
     if (!id || !allExpectedExpenses) return [];
     return allExpectedExpenses.filter((exp: any) => exp.project_id === Number(id));
   }, [allExpectedExpenses, id]);
-
-  // Mutation لتبديل حالة المشاركة
-  const toggleShareMutation = useMutation({
-    mutationFn: (isShared: boolean) => projectsApi.toggleShare(Number(id), isShared),
-    onSuccess: async (updatedProject) => {
-      console.log('🎯 [onSuccess] Updated project received:', updatedProject);
-      console.log('🎯 [onSuccess] is_shared:', updatedProject.is_shared);
-      
-      // تحديث البيانات في الـ cache مباشرة
-      queryClient.setQueryData(['project', id], updatedProject);
-      
-      // إعادة جلب البيانات للتأكد
-      await refetch();
-      
-      // تحديث قائمة المشاريع أيضاً
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    },
-    onError: (error) => {
-      console.error('❌ Error toggling share:', error);
-    },
-  });
-
-  // نسخ رابط المشاركة
-  const copyShareLink = () => {
-    const shareUrl = `${window.location.origin}/projects/${id}/shared`;
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -227,19 +195,41 @@ export default function ProjectDetailsPage() {
 
   if (isError || !project) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] p-4">
-        <Card className="max-w-md w-full">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="max-w-md w-full shadow-lg">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-10 h-10 text-gray-400" />
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-red-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">المشروع غير موجود</h2>
-            <p className="text-gray-600 mb-6">
-              عذراً، المشروع الذي تبحث عنه غير موجود أو تم حذفه.
+            <p className="text-gray-600 mb-4">
+              عذراً، المشروع الذي تبحث عنه غير موجود.
             </p>
-            <Button onClick={() => navigate('/projects')} className="w-full">
-              العودة للمشاريع
-            </Button>
+            <p className="text-sm text-gray-500">
+              يرجى التحقق من الرابط والمحاولة مرة أخرى.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // التحقق من حالة المشاركة
+  if (!project.is_shared) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="max-w-md w-full shadow-lg">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-orange-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">المشاركة مغلقة</h2>
+            <p className="text-gray-600 mb-4">
+              تم إيقاف مشاركة هذا المشروع من قبل المسؤول.
+            </p>
+            <p className="text-sm text-gray-500">
+              يرجى التواصل مع مالك المشروع لإعادة تفعيل المشاركة.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -274,10 +264,18 @@ export default function ProjectDetailsPage() {
 
   if (!project) {
     return (
-      <div className="text-center py-12">
-        <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">المشروع غير موجود</h2>
-        <Button onClick={() => navigate('/projects')}>العودة للمشاريع</Button>
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="max-w-md w-full shadow-lg">
+          <CardContent className="p-8 text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">المشاركة غير متاحة</h2>
+            <p className="text-gray-600">
+              عذراً، هذا المشروع غير متاح للمشاركة حالياً.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -301,17 +299,13 @@ export default function ProjectDetailsPage() {
   }, 0);
 
   return (
-    <div className="space-y-6">
-      {/* رأس الصفحة */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/projects')} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            العودة
-          </Button>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* رأس الصفحة */}
+        <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-6">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
               {project.code && (
                 <Badge variant="outline" className="text-sm">
                   {project.code}
@@ -333,8 +327,7 @@ export default function ProjectDetailsPage() {
                 </Badge>
               )}
             </div>
-            {project.description && <p className="text-gray-600">{project.description}</p>}
-          </div>
+          {project.description && <p className="text-gray-600">{project.description}</p>}
         </div>
       </div>
 
@@ -445,104 +438,6 @@ export default function ProjectDetailsPage() {
           </div>
         </Card>
       )}
-
-      {/* قسم المشاركة مع العملاء */}
-      <Card className="p-6 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="flex items-center gap-2 mb-4">
-          <Link2 className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-900">مشاركة المشروع مع العميل</h2>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">📱 حالة المشاركة:</span>
-            {project.is_shared ? (
-              <Badge className="bg-green-100 text-green-800 border-green-300">
-                <Unlock className="h-3 w-3 mr-1" />
-                ✅ المشاركة مفعلة
-              </Badge>
-            ) : (
-              <Badge className="bg-gray-100 text-gray-800 border-gray-300">
-                <Lock className="h-3 w-3 mr-1" />
-                ❌ المشاركة مغلقة
-              </Badge>
-            )}
-          </div>
-
-          {project.is_shared && (
-            <div className="bg-white p-4 rounded-lg border-2 border-blue-300 shadow-sm">
-              <p className="text-sm text-gray-600 mb-2">🌐 رابط المشاركة:</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={`${window.location.origin}/projects/${id}/shared`}
-                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-mono"
-                  dir="ltr"
-                />
-                <Button
-                  onClick={copyShareLink}
-                  variant={copiedLink ? "default" : "outline"}
-                  className="whitespace-nowrap"
-                >
-                  {copiedLink ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 ml-2" />
-                      تم النسخ!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 ml-2" />
-                      نسخ الرابط
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {project.is_shared ? (
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (!toggleShareMutation.isPending) {
-                    toggleShareMutation.mutate(false);
-                  }
-                }}
-                disabled={toggleShareMutation.isPending}
-                variant="destructive"
-                className="flex-1"
-              >
-                <Lock className="h-4 w-4 ml-2" />
-                {toggleShareMutation.isPending ? 'جاري الإغلاق...' : '🔒 إيقاف المشاركة'}
-              </Button>
-            ) : (
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (!toggleShareMutation.isPending) {
-                    toggleShareMutation.mutate(true);
-                  }
-                }}
-                disabled={toggleShareMutation.isPending}
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
-                <Unlock className="h-4 w-4 ml-2" />
-                {toggleShareMutation.isPending ? 'جاري التفعيل...' : '🔓 تفعيل المشاركة'}
-              </Button>
-            )}
-          </div>
-
-          <div className="bg-blue-50 border-r-4 border-blue-500 p-3 rounded text-sm text-gray-700">
-            <p className="font-medium mb-1">ℹ️ معلومة:</p>
-            <p>
-              عند تفعيل المشاركة، سيتمكن أي شخص لديه الرابط من مشاهدة تفاصيل المشروع بدون تسجيل دخول.
-              يمكنك إيقاف المشاركة في أي وقت.
-            </p>
-          </div>
-        </div>
-      </Card>
 
       {/* المصروفات المرتبطة */}
       <Card className="p-6">
@@ -1017,6 +912,7 @@ export default function ProjectDetailsPage() {
           </>
         )}
       </Card>
+      </div>
     </div>
   );
 }

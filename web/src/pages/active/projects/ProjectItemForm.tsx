@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectApi } from '@/lib/api';
+import { projectItemsApi } from '@/lib/supabaseApi';
 import { ProjectItem, CreateProjectItemData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,10 +37,10 @@ export default function ProjectItemForm({ projectId, item, onSuccess }: ProjectI
   const mutation = useMutation({
     mutationFn: async (data: CreateProjectItemData) => {
       if (item) {
-        await projectApi.updateProjectItem(item.id, data);
+        await projectItemsApi.update(item.id, data);
         return { id: item.id, success: true };
       }
-      return projectApi.createProjectItem(projectId, data);
+      return projectItemsApi.create(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId.toString()] });

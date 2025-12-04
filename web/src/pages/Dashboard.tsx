@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useQuery } from "@tanstack/react-query"
-import { projectsApi, expensesApi, categoriesApi, projectItemsApi, paymentMethodsApi, clientsApi, unitsApi } from "@/lib/supabaseApi"
+import { projectsApi, expensesApi, categoriesApi, projectItemsApi, paymentMethodsApi, clientsApi, unitsApi, expectedExpensesApi } from "@/lib/supabaseApi"
 import { useNavigate } from "react-router-dom"
 import { Expense } from "@/types"
 
@@ -25,12 +25,12 @@ export default function Dashboard() {
   })
 
   const { data: projectItems = [] } = useQuery({
-    queryKey: ['project-items'],
+    queryKey: ['projectItems'],
     queryFn: projectItemsApi.getAll
   })
 
   const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['payment-methods'],
+    queryKey: ['paymentMethods'],
     queryFn: paymentMethodsApi.getAll
   })
 
@@ -46,8 +46,21 @@ export default function Dashboard() {
     queryFn: unitsApi.getAll
   })
 
+  // جلب الإنفاق المتوقع
+  const { data: expectedExpenses = [] } = useQuery<Expense[]>({
+    queryKey: ['expectedExpenses'],
+    queryFn: expectedExpensesApi.getAll
+  })
+
   // حساب الإحصائيات
-  const totalExpenses = expenses.reduce((sum: number, exp: Expense) => sum + (exp.amount || 0), 0)
+  const totalExpenses = expenses.reduce((sum: number, exp: Expense) => {
+    const amount = exp.total_amount || exp.amount || 0;
+    return sum + amount;
+  }, 0)
+  const totalExpectedExpenses = expectedExpenses.reduce((sum: number, exp: Expense) => {
+    const amount = (exp as any).estimated_amount || exp.amount || (exp as any).total_amount || 0;
+    return sum + amount;
+  }, 0)
   const activeProjects = projects.filter(p => p.status === 'active').length
   const totalBudget = projects.reduce((sum: number, p: any) => sum + (p.budget || 0), 0)
   const activeClients = clients.filter((c: any) => c.is_active !== false).length
@@ -103,6 +116,24 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+              onClick={() => navigate('/expected-expenses')}>
+          <CardContent className="p-4 sm:p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
+              📊
+            </div>
+            <div className="text-3xl sm:text-4xl font-bold text-yellow-700 mb-2">
+              {expectedExpenses.length}
+            </div>
+            <div className="text-sm sm:text-base text-yellow-600 font-medium">
+              إنفاق متوقع
+            </div>
+            <div className="text-xs text-yellow-500 mt-2">
+              الإجمالي: {totalExpectedExpenses.toLocaleString()} ر.س
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
               onClick={() => navigate('/categories')}>
           <CardContent className="p-4 sm:p-6 text-center">
@@ -117,7 +148,10 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* بطاقات إضافية - الصف الثاني */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
               onClick={() => navigate('/project-items')}>
           <CardContent className="p-4 sm:p-6 text-center">
@@ -132,10 +166,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* بطاقات إضافية - الصف الثاني */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
               onClick={() => navigate('/payment-methods')}>
           <CardContent className="p-4 sm:p-6 text-center">
@@ -239,6 +270,56 @@ export default function Dashboard() {
             <div className="flex flex-col items-center gap-2">
               <div className="text-3xl group-hover:scale-110 transition-transform duration-300">💳</div>
               <span className="text-white text-center">طرق الدفع</span>
+            </div>
+          </Button>
+
+          <Button
+            onClick={() => navigate('/clients')}
+            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 border-0"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">👥</div>
+              <span className="text-white text-center">العملاء</span>
+            </div>
+          </Button>
+
+          <Button
+            onClick={() => navigate('/expected-expenses')}
+            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 border-0"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📊</div>
+              <span className="text-white text-center">الإنفاق المتوقع</span>
+            </div>
+          </Button>
+
+          <Button
+            onClick={() => navigate('/statistics')}
+            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 border-0"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📈</div>
+              <span className="text-white text-center">الإحصائيات والتقارير</span>
+            </div>
+          </Button>
+
+          <Button
+            onClick={() => navigate('/charts')}
+            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 border-0"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📊</div>
+              <span className="text-white text-center">الرسومات البيانية</span>
+            </div>
+          </Button>
+
+          <Button
+            onClick={() => navigate('/units')}
+            className="group min-h-[100px] p-4 text-sm sm:text-base font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 border-0"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="text-3xl group-hover:scale-110 transition-transform duration-300">📏</div>
+              <span className="text-white text-center">الوحدات</span>
             </div>
           </Button>
         </div>

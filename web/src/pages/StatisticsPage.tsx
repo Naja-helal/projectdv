@@ -20,7 +20,7 @@ import {
   Calendar,
   Wallet,
 } from 'lucide-react';
-import { projectApi, expenseApi, expectedExpenseApi, categoryApi, projectItemApi, paymentMethodApi, clientApi } from '@/lib/api';
+import { projectsApi, expensesApi, categoriesApi, projectItemsApi, paymentMethodsApi, clientsApi } from '@/lib/supabaseApi';
 import Papa from 'papaparse';
 
 type TimeRange = 'month' | 'quarter' | 'year' | 'all';
@@ -38,37 +38,41 @@ export default function StatisticsPage() {
   // Fetch data
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: clientApi.getClients,
+    queryFn: clientsApi.getAll,
   });
 
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects,
+    queryFn: projectsApi.getAll,
   });
 
   const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ['expenses'],
-    queryFn: () => expenseApi.getExpenses({}),
+    queryFn: expensesApi.getAll,
   });
 
+  // جلب الإنفاق المتوقع من API
   const { data: expectedExpenses = [] } = useQuery<Expense[]>({
     queryKey: ['expected-expenses'],
-    queryFn: () => expectedExpenseApi.getExpectedExpenses({}),
+    queryFn: async () => {
+      const { expectedExpensesApi } = await import('@/lib/supabaseApi');
+      return expectedExpensesApi.getAll();
+    },
   });
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories'],
-    queryFn: categoryApi.getCategories,
+    queryFn: categoriesApi.getAll,
   });
 
   const { data: projectItems = [] } = useQuery<ProjectItem[]>({
-    queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems,
+    queryKey: ['projectItems'],
+    queryFn: projectItemsApi.getAll,
   });
 
   const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
-    queryKey: ['payment-methods'],
-    queryFn: paymentMethodApi.getPaymentMethods,
+    queryKey: ['paymentMethods'],
+    queryFn: paymentMethodsApi.getAll,
   });
 
   // Filter expenses by date range
@@ -93,17 +97,17 @@ export default function StatisticsPage() {
       }
 
       filtered = filtered.filter((exp) => {
-        const expDate = new Date(exp.date);
+        const expDate = new Date(exp.expense_date || exp.date);
         return expDate >= startOfRange && expDate <= now;
       });
     }
 
     // Filter by custom date range
     if (startDate) {
-      filtered = filtered.filter((exp) => new Date(exp.date) >= new Date(startDate));
+      filtered = filtered.filter((exp) => new Date(exp.expense_date || exp.date) >= new Date(startDate));
     }
     if (endDate) {
-      filtered = filtered.filter((exp) => new Date(exp.date) <= new Date(endDate));
+      filtered = filtered.filter((exp) => new Date(exp.expense_date || exp.date) <= new Date(endDate));
     }
 
     // Filter by client
@@ -169,34 +173,39 @@ export default function StatisticsPage() {
       filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
     }
     
-    return filtered.reduce((sum, exp) => sum + exp.amount, 0);
+    // حساب المبلغ باستخدام نفس المنطق من صفحة الإنفاق المتوقع
+    return filtered.reduce((sum, exp) => {
+      const amount = (exp as any).estimated_amount || exp.amount || (exp as any).total_amount || 0;
+      return sum + amount;
+    }, 0);
   }, [expectedExpenses, selectedClientId, selectedProjectId, projects]);
 
   const totalActual = useMemo(() => {
-    return filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    return filteredExpenses.reduce((sum, exp) => {
+      const amount = exp.total_amount || exp.amount || 0;
+      return sum + amount;
+    }, 0);
   }, [filteredExpenses]);
 
   const expenseCount = filteredExpenses.length;
 
-  // حساب إجمالي الإنفاق المتوقع
-  const totalExpectedExpenses = useMemo(() => {
+  // حساب عدد المصروفات المتوقعة (مع نفس الفلترة)
+  const expectedExpenseCount = useMemo(() => {
     let filtered = expectedExpenses;
+    
+    // Filter by client if selected
+    if (selectedClientId) {
+      const clientProjects = projects.filter(p => p.client_id === selectedClientId).map(p => p.id);
+      filtered = filtered.filter(exp => exp.project_id && clientProjects.includes(exp.project_id));
+    }
     
     // Filter by project if selected
     if (selectedProjectId) {
       filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
     }
     
-    return filtered.reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expectedExpenses, selectedProjectId]);
-
-  const expectedExpenseCount = useMemo(() => {
-    let filtered = expectedExpenses;
-    if (selectedProjectId) {
-      filtered = filtered.filter(exp => exp.project_id === selectedProjectId);
-    }
     return filtered.length;
-  }, [expectedExpenses, selectedProjectId]);
+  }, [expectedExpenses, selectedClientId, selectedProjectId, projects]);
 
   // Prepare detailed project data for table
   const projectDetailsData = useMemo(() => {
@@ -206,13 +215,19 @@ export default function StatisticsPage() {
 
     return projectsToShow.map(project => {
       const projectExpenses = filteredExpenses.filter(exp => exp.project_id === project.id);
-      const actualSpending = projectExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const actualSpending = projectExpenses.reduce((sum, exp) => {
+        const amount = exp.total_amount || exp.amount || 0;
+        return sum + amount;
+      }, 0);
       const remaining = (project.budget || 0) - actualSpending;
       const percentage = project.budget ? (actualSpending / project.budget) * 100 : 0;
       
       // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
       const projectExpectedExpenses = expectedExpenses.filter(exp => exp.project_id === project.id);
-      const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => {
+        const amount = (exp as any).estimated_amount || exp.amount || (exp as any).total_amount || 0;
+        return sum + amount;
+      }, 0);
 
       return {
         id: project.id,
@@ -234,10 +249,20 @@ export default function StatisticsPage() {
     return filteredExpenses.map(expense => {
       const project = projects.find(p => p.id === expense.project_id);
       const category = categories.find(c => c.id === expense.category_id);
+      
+      // استخراج اسم طريقة الدفع من الكائن أو string
+      let paymentMethodName = '-';
+      if (expense.payment_method) {
+        if (typeof expense.payment_method === 'object' && expense.payment_method !== null) {
+          paymentMethodName = (expense.payment_method as any).name || '-';
+        } else {
+          paymentMethodName = expense.payment_method;
+        }
+      }
 
       return {
         id: expense.id,
-        date: new Date(expense.date).toLocaleDateString('ar-SA'),
+        date: new Date(expense.expense_date || expense.date).toLocaleDateString('ar-SA'),
         project: project?.name || '-',
         projectCode: project?.code || '-',
         category: category?.name || '-',
@@ -245,8 +270,8 @@ export default function StatisticsPage() {
         description: expense.description || '-',
         quantity: expense.quantity || 1,
         amount: expense.amount,
-        total: (expense.quantity || 1) * expense.amount,
-        paymentMethod: expense.payment_method || '-',
+        total: expense.total_amount || ((expense.quantity || 1) * expense.amount),
+        paymentMethod: paymentMethodName,
       };
     });
   }, [filteredExpenses, projects, categories]);
@@ -264,16 +289,18 @@ export default function StatisticsPage() {
       const category = categories.find(c => c.id === expense.category_id);
       if (!category) return;
 
+      const expenseAmount = expense.total_amount || expense.amount || 0;
+
       if (categoryMap.has(category.id)) {
         const data = categoryMap.get(category.id)!;
         data.count += 1;
-        data.total += expense.amount;
+        data.total += expenseAmount;
       } else {
         categoryMap.set(category.id, {
           id: category.id,
           name: category.name,
           count: 1,
-          total: expense.amount,
+          total: expenseAmount,
         });
       }
     });
@@ -283,22 +310,34 @@ export default function StatisticsPage() {
 
   // إحصائيات تصنيف المشاريع
   const projectItemsStats = useMemo(() => {
-    const itemsMap = new Map<number, { name: string; count: number; total: number; unit?: string }>();
+    const itemsMap = new Map<number, { name: string; count: number; total: number; unit: string }>();
     
     filteredExpenses.forEach(expense => {
       if (expense.project_item_id) {
         const item = projectItems.find(i => i.id === expense.project_item_id);
         if (item) {
+          const expenseAmount = expense.total_amount || expense.amount || 0;
+          
+          // استخراج الوحدة كـ string
+          let unitStr = '';
+          if (item.unit) {
+            if (typeof item.unit === 'object') {
+              unitStr = (item.unit as any).symbol || (item.unit as any).name || '';
+            } else {
+              unitStr = item.unit;
+            }
+          }
+          
           if (itemsMap.has(item.id)) {
             const data = itemsMap.get(item.id)!;
             data.count += expense.quantity || 1;
-            data.total += expense.amount;
+            data.total += expenseAmount;
           } else {
             itemsMap.set(item.id, {
               name: item.name,
               count: expense.quantity || 1,
-              total: expense.amount,
-              unit: item.unit || '',
+              total: expenseAmount,
+              unit: unitStr,
             });
           }
         }
@@ -313,16 +352,27 @@ export default function StatisticsPage() {
     const methodsMap = new Map<string, { name: string; count: number; total: number }>();
     
     filteredExpenses.forEach(expense => {
-      const method = expense.payment_method || 'غير محدد';
-      if (methodsMap.has(method)) {
-        const data = methodsMap.get(method)!;
+      // استخراج اسم طريقة الدفع من الكائن أو string
+      let methodName = 'غير محدد';
+      if (expense.payment_method) {
+        if (typeof expense.payment_method === 'object' && expense.payment_method !== null) {
+          methodName = (expense.payment_method as any).name || 'غير محدد';
+        } else {
+          methodName = expense.payment_method;
+        }
+      }
+      
+      const expenseAmount = expense.total_amount || expense.amount || 0;
+      
+      if (methodsMap.has(methodName)) {
+        const data = methodsMap.get(methodName)!;
         data.count += 1;
-        data.total += expense.amount;
+        data.total += expenseAmount;
       } else {
-        methodsMap.set(method, {
-          name: method,
+        methodsMap.set(methodName, {
+          name: methodName,
           count: 1,
-          total: expense.amount,
+          total: expenseAmount,
         });
       }
     });
@@ -342,7 +392,10 @@ export default function StatisticsPage() {
     projects.forEach(project => {
       const status = project.status || 'active';
       const projectExpenses = filteredExpenses.filter(e => e.project_id === project.id);
-      const actualSpent = projectExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const actualSpent = projectExpenses.reduce((sum, e) => {
+        const amount = e.total_amount || e.amount || 0;
+        return sum + amount;
+      }, 0);
       
       if (stats[status as keyof typeof stats]) {
         stats[status as keyof typeof stats].count += 1;
@@ -359,19 +412,21 @@ export default function StatisticsPage() {
     const monthsMap = new Map<string, { month: string; count: number; total: number }>();
     
     filteredExpenses.forEach(expense => {
-      const date = new Date(expense.date);
+      const date = new Date(expense.expense_date || expense.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long' });
+      
+      const expenseAmount = expense.total_amount || expense.amount || 0;
       
       if (monthsMap.has(monthKey)) {
         const data = monthsMap.get(monthKey)!;
         data.count += 1;
-        data.total += expense.amount;
+        data.total += expenseAmount;
       } else {
         monthsMap.set(monthKey, {
           month: monthName,
           count: 1,
-          total: expense.amount,
+          total: expenseAmount,
         });
       }
     });
@@ -555,11 +610,16 @@ export default function StatisticsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
             >
               <option value="">كل العملاء</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.icon ? `${client.icon} ` : ''}{client.name}
-                </option>
-              ))}
+              {clients.map((client: any) => {
+                const iconStr = typeof client.icon === 'object' && client.icon !== null 
+                  ? (client.icon.symbol || client.icon.name || '') 
+                  : (client.icon || '');
+                return (
+                  <option key={client.id} value={client.id}>
+                    {iconStr ? `${iconStr} ` : ''}{client.name}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -655,7 +715,7 @@ export default function StatisticsPage() {
             <div>
               <p className="text-violet-100 text-sm">الإنفاق المتوقع</p>
               <h3 className="text-2xl font-bold mt-2">
-                {totalExpectedExpenses.toLocaleString()} ر.س
+                {totalExpected.toLocaleString()} ر.س
               </h3>
               <p className="text-violet-200 text-xs mt-1">
                 {expectedExpenseCount} مصروف
@@ -830,7 +890,7 @@ export default function StatisticsPage() {
                   <th className="px-4 py-3 text-right font-semibold text-gray-700">الكمية المستخدمة</th>
                   <th className="px-4 py-3 text-right font-semibold text-gray-700">الوحدة</th>
                   <th className="px-4 py-3 text-right font-semibold text-gray-700">إجمالي القيمة</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النسبة من الإجمالي</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">النسبة</th>
                 </tr>
               </thead>
               <tbody>
@@ -1328,7 +1388,13 @@ export default function StatisticsPage() {
                     <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
                       {fullExpense?.unit_price ? `${fullExpense.unit_price.toLocaleString()} ر.س` : '-'}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{fullExpense?.payment_method || '-'}</td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {fullExpense?.payment_method 
+                        ? (typeof fullExpense.payment_method === 'object' && fullExpense.payment_method !== null
+                          ? ((fullExpense.payment_method as any).name || '-')
+                          : fullExpense.payment_method)
+                        : '-'}
+                    </td>
                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                       {fullExpense?.tax_rate ? `${fullExpense.tax_rate}% (${fullExpense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
                     </td>
@@ -1404,7 +1470,11 @@ export default function StatisticsPage() {
                   {fullExpense?.payment_method && (
                     <div className="bg-gray-50 rounded-lg p-2">
                       <p className="text-xs text-gray-500 mb-1">💳 الدفع</p>
-                      <p className="text-sm font-semibold text-gray-900">{fullExpense.payment_method}</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {typeof fullExpense.payment_method === 'object' && fullExpense.payment_method !== null
+                          ? ((fullExpense.payment_method as any).name || '-')
+                          : fullExpense.payment_method}
+                      </p>
                     </div>
                   )}
                   {fullExpense?.tax_rate && fullExpense.tax_rate > 0 && (

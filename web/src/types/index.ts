@@ -123,6 +123,7 @@ export interface Expense {
   tax_amount: number
   total_amount: number
   date: number
+  expense_date?: string // تاريخ المصروف من Supabase (DATE type)
   payment_method_id?: number
   payment_method?: string
   description?: string
@@ -332,6 +333,7 @@ export interface Project {
   end_date?: number
   status: 'active' | 'completed' | 'on_hold' | 'cancelled'
   color?: string
+  is_shared?: boolean // مشاركة المشروع مع العملاء
   created_at: number
   updated_at: number
   // البيانات المحسوبة
@@ -356,7 +358,12 @@ export interface ProjectItem {
   description?: string
   color?: string
   icon?: string
-  unit?: string
+  unit?: string | {
+    id: number
+    name: string
+    symbol?: string
+    created_at: string
+  }
   is_active: boolean
   created_at: number
   updated_at: number
@@ -401,8 +408,8 @@ export interface CreateProjectData {
   description?: string
   budget: number
   expected_spending?: number
-  start_date?: number
-  end_date?: number
+  start_date?: number | string // يدعم timestamp أو YYYY-MM-DD
+  end_date?: number | string // يدعم timestamp أو YYYY-MM-DD
   status?: 'active' | 'completed' | 'on_hold' | 'cancelled'
   color?: string
 }

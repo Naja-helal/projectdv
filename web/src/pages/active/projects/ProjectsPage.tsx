@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectApi, expectedExpenseApi, clientApi, projectItemApi } from '@/lib/api';
+import { projectsApi, clientsApi, projectItemsApi, expensesApi, expectedExpensesApi } from '@/lib/supabaseApi';
 import { Project } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -46,32 +46,38 @@ export default function ProjectsPage() {
   // جلب المشاريع
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
-    queryFn: projectApi.getProjects,
+    queryFn: projectsApi.getAll,
   });
 
   // جلب العملاء
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: clientApi.getClients,
+    queryFn: clientsApi.getAll,
   });
 
   // جلب تصنيفات المشاريع
   const { data: projectItems = [] } = useQuery({
     queryKey: ['project-items'],
-    queryFn: projectItemApi.getProjectItems,
+    queryFn: projectItemsApi.getAll,
+  });
+
+  // جلب جميع المصاريف الفعلية
+  const { data: allExpenses = [] } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: expensesApi.getAll,
   });
 
   // جلب جميع الإنفاق المتوقع
   const { data: allExpectedExpenses = [] } = useQuery({
     queryKey: ['expected-expenses'],
-    queryFn: () => expectedExpenseApi.getExpectedExpenses({}),
+    queryFn: expectedExpensesApi.getAll,
   });
 
   // حذف مشروع
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       console.log('🗑️ محاولة حذف المشروع رقم:', id);
-      const result = await projectApi.deleteProject(id);
+      const result = await projectsApi.delete(id);
       console.log('✅ نتيجة الحذف:', result);
       return result;
     },
@@ -141,11 +147,25 @@ export default function ProjectsPage() {
     return 'bg-green-500';
   };
 
-  // فلترة وبحث المشاريع
-  const filteredProjects = useMemo(() => {
+  // ربط بيانات التصنيفات مع المشاريع
+  const enrichedProjects = useMemo(() => {
     if (!projects) return [];
     
-    return projects.filter((project) => {
+    return projects.map((project) => {
+      const projectItem = projectItems.find(item => item.id === project.project_item_id);
+      return {
+        ...project,
+        project_item_name: projectItem?.name,
+        project_item_icon: projectItem?.icon,
+      };
+    });
+  }, [projects, projectItems]);
+
+  // فلترة وبحث المشاريع
+  const filteredProjects = useMemo(() => {
+    if (!enrichedProjects) return [];
+    
+    return enrichedProjects.filter((project) => {
       // البحث بالاسم أو الكود
       const matchesSearch = 
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -163,7 +183,7 @@ export default function ProjectsPage() {
       
       return matchesSearch && matchesStatus && matchesProjectItem && matchesClient;
     });
-  }, [projects, searchQuery, statusFilter, projectItemFilter, clientFilter]);
+  }, [enrichedProjects, searchQuery, statusFilter, projectItemFilter, clientFilter]);
 
   // حساب الإحصائيات
   const statistics = useMemo(() => {
@@ -173,7 +193,20 @@ export default function ProjectsPage() {
     const calculateProjectExpectedSpending = (projectId: number) => {
       return allExpectedExpenses
         .filter(exp => exp.project_id === projectId)
-        .reduce((sum, exp) => sum + exp.amount, 0);
+        .reduce((sum, exp) => {
+          const amount = exp.total_amount || exp.estimated_amount || exp.amount || 0;
+          return sum + Number(amount);
+        }, 0);
+    };
+    
+    // حساب الإنفاق الفعلي من صفحة المصاريف لكل مشروع
+    const calculateProjectActualSpending = (projectId: number) => {
+      return allExpenses
+        .filter(exp => exp.project_id === projectId)
+        .reduce((sum, exp) => {
+          const amount = exp.total_amount || exp.amount || 0;
+          return sum + Number(amount);
+        }, 0);
     };
     
     return {
@@ -183,10 +216,13 @@ export default function ProjectsPage() {
       onHold: filteredProjects.filter(p => p.status === 'on_hold').length,
       totalBudget: filteredProjects.reduce((sum, p) => sum + (p.budget || 0), 0),
       totalExpectedSpending: filteredProjects.reduce((sum, p) => sum + calculateProjectExpectedSpending(p.id), 0),
-      totalSpent: filteredProjects.reduce((sum, p) => sum + (p.total_spent || 0), 0),
-      overBudget: filteredProjects.filter(p => (p.completion_percentage || 0) >= 100).length,
+      totalSpent: filteredProjects.reduce((sum, p) => sum + calculateProjectActualSpending(p.id), 0),
+      overBudget: filteredProjects.filter(p => {
+        const actualSpent = calculateProjectActualSpending(p.id);
+        return actualSpent > (p.budget || 0);
+      }).length,
     };
-  }, [filteredProjects, allExpectedExpenses]);
+  }, [filteredProjects, allExpectedExpenses, allExpenses]);
 
   // ترقيم الصفحات
   const totalPages = Math.ceil((filteredProjects?.length || 0) / itemsPerPage);
@@ -371,11 +407,16 @@ export default function ProjectsPage() {
               className="w-full p-3 border rounded-md text-sm sm:text-base min-h-[44px]"
             >
               <option value="all">الكل</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id.toString()}>
-                  {client.icon ? `${client.icon} ` : ''}{client.name}
-                </option>
-              ))}
+              {clients.map((client: any) => {
+                const iconStr = typeof client.icon === 'object' && client.icon !== null 
+                  ? (client.icon.symbol || client.icon.name || '') 
+                  : (client.icon || '');
+                return (
+                  <option key={client.id} value={client.id}>
+                    {iconStr ? `${iconStr} ` : ''}{client.name}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -438,10 +479,20 @@ export default function ProjectsPage() {
             {paginatedProjects.map((project) => {
             // حساب الإنفاق المتوقع من صفحة الإنفاق المتوقع
             const projectExpectedExpenses = allExpectedExpenses.filter(exp => exp.project_id === project.id);
-            const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const expectedSpending = projectExpectedExpenses.reduce((sum, exp) => {
+              const amount = exp.total_amount || exp.estimated_amount || exp.amount || 0;
+              return sum + Number(amount);
+            }, 0);
             
-            const completionPercentage = project.completion_percentage || 0;
-            const remaining = (project.budget || 0) - (project.total_spent || 0);
+            // حساب الإنفاق الفعلي من صفحة المصاريف
+            const projectActualExpenses = allExpenses.filter(exp => exp.project_id === project.id);
+            const actualSpending = projectActualExpenses.reduce((sum, exp) => {
+              const amount = exp.total_amount || exp.amount || 0;
+              return sum + Number(amount);
+            }, 0);
+            
+            const completionPercentage = project.budget ? (actualSpending / project.budget) * 100 : 0;
+            const remaining = (project.budget || 0) - actualSpending;
 
             return (
               <Card
@@ -460,13 +511,29 @@ export default function ProjectsPage() {
                       )}
                       {project.client_name && (
                         <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded flex items-center gap-1">
-                          {project.client_icon && <span>{project.client_icon}</span>}
+                          {project.client_icon && (
+                            <span>
+                              {typeof project.client_icon === 'object' && project.client_icon !== null 
+                                ? (typeof project.client_icon === 'object' && project.client_icon !== null
+                                  ? ((project.client_icon as any).symbol || (project.client_icon as any).name || '')
+                                  : (project.client_icon || '')) 
+                                : project.client_icon}
+                            </span>
+                          )}
                           <span>{project.client_name}</span>
                         </span>
                       )}
                       {project.project_item_name && (
                         <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
-                          {project.project_item_icon && <span>{project.project_item_icon}</span>}
+                          {project.project_item_icon && (
+                            <span>
+                              {typeof project.project_item_icon === 'object' && project.project_item_icon !== null 
+                                ? (typeof project.project_item_icon === 'object' && project.project_item_icon !== null
+                                  ? ((project.project_item_icon as any).symbol || (project.project_item_icon as any).name || '')
+                                  : (project.project_item_icon || '')) 
+                                : project.project_item_icon}
+                            </span>
+                          )}
                           <span>{project.project_item_name}</span>
                         </span>
                       )}
@@ -495,7 +562,7 @@ export default function ProjectsPage() {
                       <div>
                         <p className="text-xs text-gray-500">الإنفاق الفعلي</p>
                         <p className="text-base sm:text-lg font-bold text-purple-600">
-                          {(project.total_spent || 0).toLocaleString()} ر.س
+                          {actualSpending.toLocaleString()} ر.س
                         </p>
                       </div>
                       <div>

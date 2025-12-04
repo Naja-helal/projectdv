@@ -1,17 +1,17 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import ExpenseForm from '@/components/forms/ExpenseForm'
-import EditExpenseForm from '@/components/forms/EditExpenseForm'
+import ExpectedExpenseForm from '../components/forms/ExpectedExpenseForm'
+import EditExpectedExpenseForm from '../components/forms/EditExpectedExpenseForm'
 import { Trash2, FolderOpen, Edit } from 'lucide-react'
-import { expensesApi, categoriesApi, projectsApi } from '@/lib/supabaseApi'
+import { categoriesApi, projectsApi, expectedExpensesApi } from '@/lib/supabaseApi'
 import type { Expense, ExpenseFilters } from '@/types'
 import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
 
-export default function Expenses() {
+export default function ExpectedExpenses() {
   const [showForm, setShowForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
@@ -23,11 +23,25 @@ export default function Expenses() {
   
   const queryClient = useQueryClient()
 
-  // جلب المصروفات
+  // جلب الإنفاق المتوقع
   const { data: expenses = [], isLoading, error } = useQuery({
-    queryKey: ['expenses', filters],
-    queryFn: () => expensesApi.getAll()
+    queryKey: ['expected-expenses'],
+    queryFn: expectedExpensesApi.getAll
   })
+
+  // Console logs للتحقق من البيانات
+  console.log('💸 [ExpectedExpenses] isLoading:', isLoading);
+  console.log('💸 [ExpectedExpenses] error:', error);
+  console.log('💸 [ExpectedExpenses] expenses count:', expenses.length);
+  console.log('💸 [ExpectedExpenses] expenses data:', expenses);
+  if (expenses.length > 0) {
+    console.log('💸 [ExpectedExpenses] أول مصروف متوقع:', expenses[0]);
+    console.log('💸 [ExpectedExpenses] التواريخ المتاحة:', {
+      expected_date: expenses[0].expected_date,
+      expense_date: expenses[0].expense_date,
+      date: expenses[0].date
+    });
+  }
 
   // جلب الفئات للفلترة
   const { data: categories = [] } = useQuery({
@@ -41,12 +55,13 @@ export default function Expenses() {
     queryFn: projectsApi.getAll
   })
 
-  // حذف مصروف
+  // حذف إنفاق متوقع
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => expensesApi.delete(id),
+    mutationFn: expectedExpensesApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['expected-expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
     }
   })
 
@@ -56,21 +71,18 @@ export default function Expenses() {
   }
 
   const handleDelete = (expense: Expense) => {
-    if (confirm('هل أنت متأكد من حذف هذا المصروف؟')) {
+    if (confirm('هل أنت متأكد من حذف هذا الإنفاق المتوقع؟')) {
       deleteMutation.mutate(expense.id)
     }
   }
 
-  // حذف المصروفات المحددة
+  // حذف الإنفاق المتوقع المحدد
   const deleteSelectedMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      for (const id of ids) {
-        await expensesApi.delete(id)
-      }
-    },
+    mutationFn: expectedExpensesApi.deleteMultiple,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['expected-expenses'] })
       queryClient.invalidateQueries({ queryKey: ['stats'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
       setSelectedExpenses([])
     }
   })
@@ -78,12 +90,12 @@ export default function Expenses() {
   const handleDeleteSelected = () => {
     if (selectedExpenses.length === 0) return
     
-    if (confirm(`هل أنت متأكد من حذف ${selectedExpenses.length} مصروف محدد؟`)) {
+    if (confirm(`هل أنت متأكد من حذف ${selectedExpenses.length} إنفاق متوقع محدد؟`)) {
       deleteSelectedMutation.mutate(selectedExpenses)
     }
   }
 
-  // تحديد/إلغاء تحديد مصروف واحد
+  // تحديد/إلغاء تحديد إنفاق متوقع واحد
   const toggleExpenseSelection = (expenseId: number) => {
     setSelectedExpenses(prev => 
       prev.includes(expenseId) 
@@ -92,7 +104,7 @@ export default function Expenses() {
     )
   }
 
-  // تحديد/إلغاء تحديد جميع المصروفات
+  // تحديد/إلغاء تحديد جميع الإنفاق المتوقع
   const toggleSelectAll = () => {
     setSelectedExpenses(prev => 
       prev.length === expenses.length 
@@ -110,58 +122,50 @@ export default function Expenses() {
     setSearchTerm('')
   }
 
-  // إثراء البيانات من العلاقات المرتبطة
-  const enrichedExpenses = expenses.map(expense => {
-    const categoryData = typeof (expense as any).category === 'object' && (expense as any).category !== null 
-      ? (expense as any).category 
-      : null;
-    
-    const projectData = typeof (expense as any).project === 'object' && (expense as any).project !== null 
-      ? (expense as any).project 
-      : null;
-    
-    const paymentMethodData = typeof (expense as any).payment_method === 'object' && (expense as any).payment_method !== null 
-      ? (expense as any).payment_method 
-      : null;
-    
-    const unitData = typeof (expense as any).unit === 'object' && (expense as any).unit !== null 
-      ? (expense as any).unit 
-      : null;
-
-    return {
-      ...expense,
-      category_name: categoryData?.name || expense.category_name || 'غير محدد',
-      category_color: categoryData?.color || expense.category_color || '#6b7280',
-      project_name: projectData?.name || expense.project_name || null,
-      project_color: projectData?.color || expense.project_color || '#3b82f6',
-      project_code: projectData?.code || expense.project_code || null,
-      payment_method_name: paymentMethodData?.name || (typeof expense.payment_method === 'string' ? expense.payment_method : null),
-      unit_name: unitData?.name || expense.unit_name || null
-    };
-  });
-
   // حساب الصفحات
-  const totalPages = Math.ceil(enrichedExpenses.length / itemsPerPage)
+  const totalPages = Math.ceil(expenses.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const displayedExpenses = enrichedExpenses.slice(startIndex, endIndex)
+  const displayedExpenses = expenses.slice(startIndex, endIndex)
 
   // حساب الإحصائيات
   const stats = {
-    total: enrichedExpenses.length,
-    totalAmount: enrichedExpenses.reduce((sum, expense) => sum + (expense.total_amount || expense.amount), 0),
-    byCategory: enrichedExpenses.reduce((acc, expense) => {
-      const categoryName = expense.category_name || 'غير محدد'
-      acc[categoryName] = (acc[categoryName] || 0) + 1
-      return acc
+    total: expenses.length,
+    totalAmount: expenses.reduce((sum, expense) => {
+      const amount = (expense as any).estimated_amount || expense.amount || expense.total_amount || 0;
+      return sum + amount;
+    }, 0),
+    byCategory: expenses.reduce((acc, expense) => {
+      let categoryName = 'غير محدد';
+      if (typeof (expense as any).category === 'object' && (expense as any).category !== null) {
+        categoryName = (expense as any).category.name || 'غير محدد';
+      } else {
+        categoryName = expense.category_name || 'غير محدد';
+      }
+      acc[categoryName] = (acc[categoryName] || 0) + 1;
+      return acc;
     }, {} as Record<string, number>),
-    linkedToProjects: enrichedExpenses.filter(expense => expense.project_id).length
+    linkedToProjects: expenses.filter(expense => expense.project_id).length
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل الإنفاق المتوقع...</p>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-500">حدث خطأ في تحميل المصروفات</p>
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-2">❌ حدث خطأ في تحميل الإنفاق المتوقع</p>
+          <p className="text-gray-600 text-sm">{error instanceof Error ? error.message : 'خطأ غير معروف'}</p>
+        </div>
       </div>
     )
   }
@@ -170,35 +174,35 @@ export default function Expenses() {
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* العنوان */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">💰 المصروفات</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📊 الإنفاق المتوقع</h1>
         <Button 
           onClick={() => setShowForm(true)}
-          className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-h-[48px] px-6 rounded-xl font-semibold"
+          className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-h-[48px] px-6 rounded-xl font-semibold"
         >
-          ➕ إضافة مصروف جديد
+          ➕ إضافة إنفاق متوقع جديد
         </Button>
       </div>
 
       {/* الإحصائيات */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
           <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.total}</div>
-          <div className="text-xs sm:text-sm text-blue-100">إجمالي المصروفات</div>
+          <div className="text-xs sm:text-sm text-purple-100">إجمالي الإنفاق المتوقع</div>
         </div>
         
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
           <div className="text-xl sm:text-2xl font-bold mb-1">{stats.totalAmount.toLocaleString()} ر.س</div>
-          <div className="text-xs sm:text-sm text-green-100">إجمالي المبلغ</div>
+          <div className="text-xs sm:text-sm text-indigo-100">إجمالي المبلغ المتوقع</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
           <div className="text-2xl sm:text-3xl font-bold mb-1">{Object.keys(stats.byCategory).length}</div>
-          <div className="text-xs sm:text-sm text-purple-100">الفئات المستخدمة</div>
+          <div className="text-xs sm:text-sm text-pink-100">الفئات المستخدمة</div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-violet-500 to-violet-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
           <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.linkedToProjects}</div>
-          <div className="text-xs sm:text-sm text-orange-100">مرتبط بمشاريع</div>
+          <div className="text-xs sm:text-sm text-violet-100">مرتبط بمشاريع</div>
         </div>
 
         {selectedExpenses.length > 0 && (
@@ -214,7 +218,7 @@ export default function Expenses() {
         <div className="p-4 sm:p-6 space-y-4">
           {/* البحث */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">🔍 البحث في المصروفات:</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">🔍 البحث في الإنفاق المتوقع:</label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="text"
@@ -226,7 +230,7 @@ export default function Expenses() {
               />
               <Button 
                 onClick={handleSearch}
-                className="min-h-[48px] px-6 rounded-xl bg-blue-600 hover:bg-blue-700"
+                className="min-h-[48px] px-6 rounded-xl bg-purple-600 hover:bg-purple-700"
               >
                 بحث
               </Button>
@@ -244,7 +248,7 @@ export default function Expenses() {
                   ...prev,
                   categoryId: e.target.value ? parseInt(e.target.value) : undefined
                 }))}
-                className="w-full min-h-[48px] px-4 py-3 text-base border-2 rounded-xl bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full min-h-[48px] px-4 py-3 text-base border-2 rounded-xl bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
               >
                 <option value="">جميع الفئات</option>
                 {categories.map(category => (
@@ -262,7 +266,7 @@ export default function Expenses() {
                   ...prev,
                   projectId: e.target.value ? parseInt(e.target.value) : undefined
                 }))}
-                className="w-full min-h-[48px] px-4 py-3 text-base border-2 rounded-xl bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full min-h-[48px] px-4 py-3 text-base border-2 rounded-xl bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
               >
                 <option value="">جميع المشاريع</option>
                 {projects.map(project => (
@@ -325,16 +329,16 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* جدول المصروفات */}
+      {/* جدول الإنفاق المتوقع */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-gray-500">جاري التحميل...</div>
         </div>
       ) : expenses.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-          <div className="text-6xl mb-4">📭</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد مصروفات</h3>
-          <p className="text-gray-500">ابدأ بإضافة مصروف جديد</p>
+          <div className="text-6xl mb-4">📊</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">لا يوجد إنفاق متوقع</h3>
+          <p className="text-gray-500">ابدأ بإضافة إنفاق متوقع جديد</p>
         </div>
       ) : (
         <>
@@ -342,7 +346,7 @@ export default function Expenses() {
           <div className="hidden lg:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                <thead className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-200">
                   <tr>
                     <th className="px-3 py-4 text-right">
                       <input
@@ -365,11 +369,22 @@ export default function Expenses() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {displayedExpenses.map((expense) => (
+                  {displayedExpenses.map((expense) => {
+                    console.log("📊 عرض الإنفاق المتوقع:", {
+                      id: expense.id,
+                      description: expense.description,
+                      expected_date: expense.expected_date,
+                      expense_date: expense.expense_date,
+                      date: expense.date,
+                      payment_method_id: expense.payment_method_id,
+                      payment_method: expense.payment_method
+                    });
+                    
+                    return (
                     <tr 
                       key={expense.id} 
-                      className={`hover:bg-blue-50 transition-colors duration-150 ${
-                        selectedExpenses.includes(expense.id) ? 'bg-blue-100' : ''
+                      className={`hover:bg-purple-50 transition-colors duration-150 ${
+                        selectedExpenses.includes(expense.id) ? 'bg-purple-100' : ''
                       }`}
                     >
                       <td className="px-3 py-4">
@@ -381,42 +396,57 @@ export default function Expenses() {
                         />
                       </td>
                       <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
-                        {format(new Date(expense.expense_date || expense.date), 'dd/MM/yyyy', { locale: ar })}
+                        {format(new Date((expense as any).expected_date || expense.expense_date || expense.date), 'dd/MM/yyyy', { locale: ar })}
                       </td>
                       <td className="px-3 py-4 text-gray-600 max-w-xs">
-                        <div className="line-clamp-2 text-sm" title={expense.details}>
-                          {expense.details || '-'}
+                        <div className="line-clamp-2 text-sm" title={expense.description}>
+                          {expense.description || expense.details || '-'}
                         </div>
                       </td>
                       <td className="px-3 py-4">
                         <span 
                           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap"
-                          style={{ backgroundColor: expense.category_color || '#6b7280', color: '#fff' }}
+                          style={{ 
+                            backgroundColor: typeof (expense as any).category === 'object' 
+                              ? ((expense as any).category?.color || '#6b7280')
+                              : (expense.category_color || '#6b7280'), 
+                            color: '#fff' 
+                          }}
                         >
-                          {expense.category_name}
+                          {typeof (expense as any).category === 'object' && (expense as any).category !== null
+                            ? (expense as any).category.name || '-'
+                            : (expense.category_name || '-')}
                         </span>
                       </td>
                       <td className="px-3 py-4 text-gray-700 text-center font-medium whitespace-nowrap">
-                        {expense.quantity ? `${expense.quantity} ${expense.unit_name || ''}` : '-'}
+                        {expense.quantity ? `${expense.quantity} ${typeof expense.unit === 'object' ? ((expense.unit as any)?.symbol || (expense.unit as any)?.name || '') : (expense.unit_name || '')}` : '-'}
                       </td>
                       <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
-                        {expense.unit_price ? `${expense.unit_price.toLocaleString()} ر.س` : '-'}
+                        {expense.unit_price ? `${expense.unit_price.toLocaleString()} ر.س` : (expense.quantity && expense.amount ? `${(expense.amount / expense.quantity).toLocaleString()} ر.س` : '-')}
                       </td>
                       <td className="px-3 py-4 text-gray-700">
-                        {expense.payment_method_name || '-'}
+                        {typeof expense.payment_method === 'object' && expense.payment_method !== null 
+                          ? (expense.payment_method as any).name || '-' 
+                          : (expense.payment_method || '-')}
                       </td>
                       <td className="px-3 py-4 text-gray-700 whitespace-nowrap">
                         {expense.tax_rate ? `${expense.tax_rate}% (${expense.tax_amount?.toLocaleString() || 0} ر.س)` : '-'}
                       </td>
-                      <td className="px-3 py-4 font-bold text-lg text-green-700 whitespace-nowrap">
-                        {(expense.total_amount || expense.amount).toLocaleString()} ر.س
+                      <td className="px-3 py-4 font-bold text-lg text-purple-700 whitespace-nowrap">
+                        {((expense as any).estimated_amount || expense.total_amount || expense.amount || 0).toLocaleString()} ر.س
                       </td>
                       <td className="px-3 py-4">
-                        {expense.project_name ? (
+                        {(expense as any).project || expense.project_name ? (
                           <div className="text-sm">
                             <div className="flex items-center gap-2 font-medium text-gray-900">
-                              <FolderOpen className="w-4 h-4" style={{ color: expense.project_color || '#3b82f6' }} />
-                              {expense.project_name}
+                              <FolderOpen className="w-4 h-4" style={{ 
+                                color: typeof (expense as any).project === 'object' 
+                                  ? ((expense as any).project?.color || '#3b82f6')
+                                  : (expense.project_color || '#3b82f6') 
+                              }} />
+                              {typeof (expense as any).project === 'object' && (expense as any).project !== null
+                                ? (expense as any).project.name || '-'
+                                : (expense.project_name || '-')}
                             </div>
                             {expense.project_item_name && (
                               <div className="text-xs text-gray-500 mt-1">{expense.project_item_name}</div>
@@ -430,7 +460,7 @@ export default function Expenses() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleEdit(expense)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                             title="تعديل"
                           >
                             <Edit className="w-4 h-4" />
@@ -445,7 +475,8 @@ export default function Expenses() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -461,7 +492,7 @@ export default function Expenses() {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -471,7 +502,7 @@ export default function Expenses() {
                   <option value={100}>100</option>
                 </select>
                 <span className="text-sm text-gray-600">
-                  عرض {startIndex + 1}-{Math.min(endIndex, enrichedExpenses.length)} من {enrichedExpenses.length}
+                  عرض {startIndex + 1}-{Math.min(endIndex, expenses.length)} من {expenses.length}
                 </span>
               </div>
 
@@ -492,7 +523,7 @@ export default function Expenses() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         currentPage === page
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-purple-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -518,7 +549,7 @@ export default function Expenses() {
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                 <input
                   type="checkbox"
-                  checked={selectedExpenses.length === enrichedExpenses.length && enrichedExpenses.length > 0}
+                  checked={selectedExpenses.length === expenses.length && expenses.length > 0}
                   onChange={toggleSelectAll}
                   className="w-5 h-5 rounded border-gray-300"
                 />
@@ -526,11 +557,11 @@ export default function Expenses() {
               </label>
             </div>
             
-            {displayedExpenses.map((expense) => (
+            {expenses.map((expense) => (
               <div 
                 key={expense.id} 
                 className={`bg-white rounded-2xl shadow-lg border p-4 space-y-3 ${
-                  selectedExpenses.includes(expense.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-100'
+                  selectedExpenses.includes(expense.id) ? 'border-purple-500 bg-purple-50' : 'border-gray-100'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -542,7 +573,7 @@ export default function Expenses() {
                       className="w-5 h-5 rounded border-gray-300 mt-1"
                     />
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-base">{expense.details || 'مصروف'}</h3>
+                      <h3 className="font-semibold text-gray-900 text-base">{expense.description || expense.details || 'إنفاق متوقع'}</h3>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -550,7 +581,7 @@ export default function Expenses() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(expense)}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 -mt-1"
+                      className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 -mt-1"
                     >
                       <Edit className="w-5 h-5" />
                     </Button>
@@ -569,30 +600,42 @@ export default function Expenses() {
                   <div>
                     <div className="text-xs text-gray-500 mb-1">التاريخ</div>
                     <div className="font-medium text-gray-900">
-                      {format(new Date(expense.expense_date || expense.date), 'dd MMM yyyy', { locale: ar })}
+                      {format(new Date((expense as any).expected_date || expense.expense_date || expense.date), 'dd MMM yyyy', { locale: ar })}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">المبلغ</div>
-                    <div className="font-bold text-lg text-gray-900">{expense.amount.toLocaleString()} ر.س</div>
+                    <div className="font-bold text-lg text-gray-900">{((expense as any).estimated_amount || expense.amount || 0).toLocaleString()} ر.س</div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {expense.category_name}
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    {typeof (expense as any).category === 'object' && (expense as any).category !== null
+                      ? (expense as any).category.name || '-'
+                      : (expense.category_name || '-')}
                   </span>
                 </div>
 
-                {expense.project_name && (
+                {((expense as any).project || expense.project_name) && (
                   <div className="pt-2 border-t border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">المشروع</div>
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                      <FolderOpen className="w-4 h-4" style={{ color: expense.project_color || '#3b82f6' }} />
-                      {expense.project_name}
-                      {expense.project_code && (
-                        <span className="text-xs text-gray-500">({expense.project_code})</span>
-                      )}
+                      <FolderOpen className="w-4 h-4" style={{ 
+                        color: typeof (expense as any).project === 'object' 
+                          ? ((expense as any).project?.color || '#3b82f6')
+                          : (expense.project_color || '#3b82f6')
+                      }} />
+                      {typeof (expense as any).project === 'object' && (expense as any).project !== null
+                        ? (expense as any).project.name || '-'
+                        : (expense.project_name || '-')}
+                      {(typeof (expense as any).project === 'object' && (expense as any).project?.code) || expense.project_code ? (
+                        <span className="text-xs text-gray-500">(
+                          {typeof (expense as any).project === 'object' 
+                            ? (expense as any).project.code 
+                            : expense.project_code}
+                        )</span>
+                      ) : null}
                     </div>
                     {expense.project_item_name && (
                       <div className="text-xs text-gray-500 mt-1 mr-6">{expense.project_item_name}</div>
@@ -605,21 +648,22 @@ export default function Expenses() {
         </>
       )}
 
-      {/* نموذج إضافة مصروف */}
+      {/* نموذج إضافة إنفاق متوقع */}
       {showForm && (
-        <ExpenseForm 
+        <ExpectedExpenseForm 
           open={showForm}
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false)
-            queryClient.invalidateQueries({ queryKey: ['expenses'] })
+            queryClient.invalidateQueries({ queryKey: ['expected-expenses'] })
             queryClient.invalidateQueries({ queryKey: ['stats'] })
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
           }}
         />
       )}
 
-      {/* نموذج تعديل مصروف */}
-      <EditExpenseForm
+      {/* نموذج تعديل إنفاق متوقع */}
+      <EditExpectedExpenseForm
         expense={selectedExpense}
         open={showEditForm}
         onClose={() => {
